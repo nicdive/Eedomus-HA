@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to eedomus",
+        "description": "Enter the host (local box IP or api.eedomus.com) and your API credentials (eedomus Configuration → User API).",
+        "data": {
+          "api_host": "API host",
+          "api_user": "API user",
+          "api_secret": "API secret",
+          "scan_interval": "Refresh interval"
+        }
+      },
+      "devices": {
+        "title": "Select peripherals",
+        "description": "Pick the sensors and actuators to import into Home Assistant (similar to linking a second HA instance).",
+        "data": {
+          "selected_devices": "Peripherals"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the eedomus box / API",
+      "invalid_auth": "Invalid API credentials",
+      "no_devices": "Select at least one peripheral",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This eedomus box is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "eedomus options",
+        "description": "Change which peripherals are imported and how often they are polled.",
+        "data": {
+          "selected_devices": "Peripherals",
+          "scan_interval": "Refresh interval"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the eedomus box / API",
+      "no_devices": "Select at least one peripheral"
+    }
+  }
+}

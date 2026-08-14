@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connexion eedomus",
+        "description": "Renseignez l'hôte (IP locale de la box ou api.eedomus.com) et vos identifiants API (Configuration eedomus → API utilisateur).",
+        "data": {
+          "api_host": "Hôte API",
+          "api_user": "Identifiant API",
+          "api_secret": "Mot de passe API",
+          "scan_interval": "Intervalle de rafraîchissement"
+        }
+      },
+      "devices": {
+        "title": "Sélection des périphériques",
+        "description": "Choisissez les capteurs et actionneurs à importer dans Home Assistant (comme pour une 2ᵉ instance HA).",
+        "data": {
+          "selected_devices": "Périphériques"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de contacter la box / l'API eedomus",
+      "invalid_auth": "Identifiants API invalides",
+      "no_devices": "Sélectionnez au moins un périphérique",
+      "unknown": "Erreur inattendue"
+    },
+    "abort": {
+      "already_configured": "Cette box eedomus est déjà configurée"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options eedomus",
+        "description": "Modifiez la sélection des périphériques et la fréquence de polling.",
+        "data": {
+          "selected_devices": "Périphériques",
+          "scan_interval": "Intervalle de rafraîchissement"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de contacter la box / l'API eedomus",
+      "no_devices": "Sélectionnez au moins un périphérique"
+    }
+  }
+}
