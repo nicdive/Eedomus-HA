@@ -3,17 +3,17 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Renseignez l'hôte (IP locale de la box ou api.eedomus.com) et vos identifiants API (Configuration eedomus → API utilisateur).",
+        "description": "Renseignez l'hôte (IP locale de la box ou api.eedomus.com) et vos identifiants API (Configuration eedomus → API utilisateur).\n\nIntervalle de polling de secours : {scan_hint}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",
           "api_secret": "Mot de passe API",
-          "scan_interval": "Intervalle de rafraîchissement"
+          "scan_interval": "Polling de secours (0 = webhook seul)"
         }
       },
       "devices": {
         "title": "Sélection des périphériques",
-        "description": "Choisissez les capteurs et actionneurs à importer dans Home Assistant (comme pour une 2ᵉ instance HA).",
+        "description": "Choisissez les capteurs et actionneurs Z-Wave / RFX (ou autres) à importer. eedomus reste la passerelle radio ; HA reçoit les changements en push via webhook.",
         "data": {
           "selected_devices": "Périphériques"
         }
@@ -33,10 +33,10 @@
     "step": {
       "init": {
         "title": "Options eedomus",
-        "description": "Modifiez la sélection des périphériques et la fréquence de polling.",
+        "description": "Sélection des périphériques et polling de secours (0 = webhook uniquement).\n\nURL webhook à coller dans un Actionneur HTTP eedomus :\n{webhook_url}\n\nExemple GET : {webhook_url}?periph_id=123&value=100",
         "data": {
           "selected_devices": "Périphériques",
-          "scan_interval": "Intervalle de rafraîchissement"
+          "scan_interval": "Polling de secours (0 = webhook seul)"
         }
       }
     },

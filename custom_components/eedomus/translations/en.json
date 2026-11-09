@@ -3,17 +3,17 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Enter the host (local box IP or api.eedomus.com) and your API credentials (eedomus Configuration → User API).",
+        "description": "Enter the host (local box IP or api.eedomus.com) and your API credentials (eedomus Configuration → User API).\n\nBackup poll interval: {scan_hint}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",
           "api_secret": "API secret",
-          "scan_interval": "Refresh interval"
+          "scan_interval": "Backup poll (0 = webhook only)"
         }
       },
       "devices": {
         "title": "Select peripherals",
-        "description": "Pick the sensors and actuators to import into Home Assistant (similar to linking a second HA instance).",
+        "description": "Pick the Z-Wave / RFX (or other) sensors and actuators to import. eedomus stays the radio gateway; HA gets changes instantly via webhook push.",
         "data": {
           "selected_devices": "Peripherals"
         }
@@ -33,10 +33,10 @@
     "step": {
       "init": {
         "title": "eedomus options",
-        "description": "Change which peripherals are imported and how often they are polled.",
+        "description": "Change peripherals and the backup poll interval (0 = webhook only).\n\nWebhook URL for an eedomus HTTP actuator:\n{webhook_url}\n\nGET example: {webhook_url}?periph_id=123&value=100",
         "data": {
           "selected_devices": "Peripherals",
-          "scan_interval": "Refresh interval"
+          "scan_interval": "Backup poll (0 = webhook only)"
         }
       }
     },

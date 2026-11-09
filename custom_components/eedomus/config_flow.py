@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from typing import Any
 
 import voluptuous as vol
@@ -19,6 +20,7 @@ from .const import (
     CONF_API_USER,
     CONF_SCAN_INTERVAL,
     CONF_SELECTED_DEVICES,
+    CONF_WEBHOOK_ID,
     DEFAULT_API_HOST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -26,6 +28,7 @@ from .const import (
     MIN_SCAN_INTERVAL,
 )
 from .mapping import peripheral_label
+from .webhook import webhook_url_for_entry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,6 +127,9 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+            description_placeholders={
+                "scan_hint": "0 = push webhook uniquement (recommandé pour Z-Wave/RFX)",
+            },
         )
 
     async def async_step_devices(
@@ -149,6 +155,7 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_API_SECRET: self._api_secret,
                     CONF_SCAN_INTERVAL: self._scan_interval,
                     CONF_SELECTED_DEVICES: selected,
+                    CONF_WEBHOOK_ID: secrets.token_hex(16),
                 },
             )
 
@@ -200,6 +207,12 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
                 CONF_SCAN_INTERVAL,
                 data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
             )
+        )
+        webhook_id = str(data.get(CONF_WEBHOOK_ID) or "")
+        webhook_url = (
+            webhook_url_for_entry(self.hass, webhook_id)
+            if webhook_id
+            else "(webhook non encore initialisé — rechargez l'intégration)"
         )
 
         client = EedomusClient(
@@ -266,4 +279,5 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
                 }
             ),
             errors=errors,
+            description_placeholders={"webhook_url": webhook_url},
         )

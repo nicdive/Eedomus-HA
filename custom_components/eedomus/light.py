@@ -58,11 +58,9 @@ class EedomusLight(EedomusEntity, LightEntity):
         if ATTR_BRIGHTNESS in kwargs:
             percent = int(round(kwargs[ATTR_BRIGHTNESS] / 2.55))
             percent = max(1, min(100, percent))
-            await self.coordinator.client.async_set_value(self.periph_id, percent)
+            await self.coordinator.async_set_value(self.periph_id, percent)
         else:
-            await self.coordinator.client.async_set_value(self.periph_id, 100)
-        await self.coordinator.async_request_refresh()
+            await self.coordinator.async_set_value(self.periph_id, 100)
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.coordinator.client.async_set_value(self.periph_id, 0)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, 0)
