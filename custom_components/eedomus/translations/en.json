@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Host = local box IP (e.g. 192.168.x.x), not the web login.\nCredentials = api_user / api_secret (My account → API credentials), not the portal password.\n\nBackup poll: {scan_hint}\nLast error: {last_error}",
+        "description": "Version 1.1.4 — Host = box IP (e.g. 192.168.x.x). Credentials = api_user/api_secret (not web login).\nPoll: {scan_hint}\n\n>>> DETAILED ERROR: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",

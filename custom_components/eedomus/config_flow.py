@@ -9,6 +9,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import AbortFlow
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -78,57 +79,38 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
         if user_input is not None:
-            host = user_input[CONF_API_HOST].strip()
-            api_user = user_input[CONF_API_USER].strip()
-            api_secret = user_input[CONF_API_SECRET].strip()
-            scan_interval = int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
-            defaults[CONF_API_HOST] = host
-            defaults[CONF_SCAN_INTERVAL] = scan_interval
-
-            # Local boxes sometimes hit self-signed TLS redirects; disable verify there.
-            session = async_get_clientsession(
-                self.hass, verify_ssl=not EedomusClient.is_local_host(host)
-            )
-            client = EedomusClient(
-                session=session,
-                host=host,
-                api_user=api_user,
-                api_secret=api_secret,
-            )
-            peripherals: list[dict[str, Any]] = []
             try:
-                await client.async_test_auth()
-            except EedomusAuthError as err:
-                _LOGGER.warning("eedomus auth.test failed for %s: %s", host, err)
-                errors["base"] = "invalid_auth"
-                last_error = f"auth.test: {err}"
-            except EedomusApiError as err:
-                _LOGGER.warning(
-                    "eedomus unreachable at %s (base=%s): %s",
-                    host,
-                    client.base_url,
-                    err,
+                host = str(user_input[CONF_API_HOST]).strip()
+                api_user = str(user_input[CONF_API_USER]).strip()
+                api_secret = str(user_input[CONF_API_SECRET]).strip()
+                scan_interval = int(
+                    user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
                 )
-                errors["base"] = "cannot_connect"
-                last_error = f"auth.test via {client.base_url}: {err}"
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.exception("Unexpected error during eedomus auth.test")
-                errors["base"] = "unknown"
-                last_error = str(err)
-            else:
-                try:
-                    peripherals = await client.async_get_peripherals()
-                except EedomusApiError as err:
-                    _LOGGER.warning(
-                        "eedomus periph.list failed for %s: %s", host, err
-                    )
-                    errors["base"] = "cannot_connect"
-                    last_error = f"auth.test OK, periph.list failed: {err}"
-                except Exception as err:  # noqa: BLE001
-                    _LOGGER.exception("Unexpected error during eedomus periph.list")
-                    errors["base"] = "unknown"
-                    last_error = f"auth.test OK, periph.list failed: {err}"
+                defaults[CONF_API_HOST] = host
+                defaults[CONF_SCAN_INTERVAL] = scan_interval
+
+                if not api_user or not api_secret:
+                    errors["base"] = "invalid_auth"
+                    last_error = "api_user / api_secret vides"
                 else:
+                    # Prefer verify_ssl=False on LAN; fall back if HA build differs.
+                    try:
+                        session = async_get_clientsession(
+                            self.hass,
+                            verify_ssl=not EedomusClient.is_local_host(host),
+                        )
+                    except TypeError:
+                        session = async_get_clientsession(self.hass)
+
+                    client = EedomusClient(
+                        session=session,
+                        host=host,
+                        api_user=api_user,
+                        api_secret=api_secret,
+                    )
+                    await client.async_test_auth()
+                    peripherals = await client.async_get_peripherals()
+
                     await self.async_set_unique_id(f"eedomus_{api_user}")
                     self._abort_if_unique_id_configured()
 
@@ -138,6 +120,20 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     self._scan_interval = scan_interval
                     self._peripherals = peripherals
                     return await self.async_step_devices()
+            except AbortFlow:
+                raise
+            except EedomusAuthError as err:
+                _LOGGER.warning("eedomus auth failed: %s", err)
+                errors["base"] = "invalid_auth"
+                last_error = f"{type(err).__name__}: {err}"
+            except EedomusApiError as err:
+                _LOGGER.warning("eedomus API failed: %s", err)
+                errors["base"] = "cannot_connect"
+                last_error = f"{type(err).__name__}: {err}"
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.exception("Unexpected error during eedomus setup")
+                errors["base"] = "unknown"
+                last_error = f"{type(err).__name__}: {err}"
 
         return self.async_show_form(
             step_id="user",
