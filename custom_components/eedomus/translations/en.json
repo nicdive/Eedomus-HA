@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Version 1.1.9 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
+        "description": "Version 1.1.10 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",
@@ -13,14 +13,14 @@
       },
       "organize": {
         "title": "List organization",
-        "description": "Choose how to display peripherals (by room or by type). The next screen uses a full checklist.",
+        "description": "Choose how to display peripherals (by room or by type). Next: a large searchable picker (easier on phones).",
         "data": {
           "sort_by": "Sort by"
         }
       },
       "devices": {
         "title": "Select peripherals",
-        "description": "{count} peripherals — sorted by {sort_by}.\nCheck devices to import. Format: Room · Name · Type #id",
+        "description": "{count} peripherals — sorted by {sort_by}.\nOpen the picker (large UI + search). Each row: Name, then room · type.",
         "data": {
           "selected_devices": "Peripherals"
         }

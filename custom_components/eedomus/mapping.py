@@ -43,9 +43,8 @@ def _clean_text(value: Any) -> str:
 def peripheral_label(periph: dict[str, Any], *, sort_by: str = "room") -> str:
     """Human-readable label for config-flow multi-select.
 
-    sort_by:
-      - room: "Pièce  ·  Nom  ·  Type"
-      - type: "Type  ·  Pièce  ·  Nom"
+    Name first (largest readable token on phone), meta on a 2nd line.
+    sort_by only changes the secondary line order (room vs type first).
     """
     periph_id = str(periph.get("periph_id", "?"))
     name = _clean_text(periph.get("name")) or f"Périphérique {periph_id}"
@@ -55,8 +54,11 @@ def peripheral_label(periph: dict[str, Any], *, sort_by: str = "room") -> str:
     kind = PLATFORM_LABELS.get(platform, platform)
 
     if sort_by == "type":
-        return f"{kind}  ·  {room}  ·  {name}  #{periph_id}"
-    return f"{room}  ·  {name}  ·  {kind}  #{periph_id}"
+        meta = f"{kind}  ·  {room}  ·  #{periph_id}"
+    else:
+        meta = f"{room}  ·  {kind}  ·  #{periph_id}"
+    # Newline → taller rows / clearer hierarchy in HA list & picker UIs.
+    return f"{name}\n{meta}"
 
 
 def sort_peripherals(

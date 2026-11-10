@@ -61,13 +61,15 @@ def _devices_schema(
     options: list[selector.SelectOptionDict],
     defaults: list[str],
 ) -> vol.Schema:
+    # DROPDOWN + multiple → HA mobile picker (search + larger taps).
+    # LIST checkboxes stay too cramped on a phone with long labels.
     return vol.Schema(
         {
             vol.Required(CONF_SELECTED_DEVICES, default=defaults): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=options,
                     multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             )
         }
@@ -385,7 +387,7 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
                         selector.SelectSelectorConfig(
                             options=options,
                             multiple=True,
-                            mode=selector.SelectSelectorMode.LIST,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
                         )
                     ),
                     vol.Required(
