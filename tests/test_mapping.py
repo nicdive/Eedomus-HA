@@ -247,6 +247,30 @@ class MappingTests(unittest.TestCase):
         self.assertEqual(result["device_class"], "power")
         self.assertEqual(result["unit"], "W")
 
+    def test_usage_26_is_power_not_energy(self):
+        """eedomus usage_id 26 = Consomètre (W), not cumulative kWh."""
+        result = resolve_mapping(
+            {
+                "usage_id": "26",
+                "usage_name": "Consomètre",
+                "name": "Consommation sèche linge EDF",
+            }
+        )
+        self.assertEqual(result["device_class"], "power")
+        self.assertEqual(result["unit"], "W")
+        self.assertEqual(result["state_class"], "measurement")
+
+    def test_name_overrides_wrong_energy_usage(self):
+        result = resolve_mapping(
+            {
+                "usage_id": "29",
+                "usage_name": "Consomètre",
+                "name": "Consommation sèche linge",
+            }
+        )
+        self.assertEqual(result["device_class"], "power")
+        self.assertEqual(result["unit"], "W")
+
     def test_extract_value_aliases(self):
         self.assertEqual(extract_last_value({"value": "379.3"}), "379.3")
         self.assertEqual(
