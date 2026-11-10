@@ -153,6 +153,7 @@ sys.modules["eedomus"] = eedomus_pkg
 _load_module("eedomus.const", "const.py")
 mapping = _load_module("eedomus.mapping", "mapping.py")
 api = _load_module("eedomus.api", "api.py")
+values = _load_module("eedomus.values", "values.py")
 coordinator_mod = _load_module("eedomus.coordinator", "coordinator.py")
 helpers = _load_module("eedomus.helpers", "helpers.py")
 webhook = _load_module("eedomus.webhook", "webhook.py")
@@ -161,6 +162,8 @@ resolve_mapping = mapping.resolve_mapping
 peripheral_label = mapping.peripheral_label
 coerce_number = mapping.coerce_number
 is_on_value = mapping.is_on_value
+extract_last_value = values.extract_last_value
+merge_value_fields = values.merge_value_fields
 EedomusClient = api.EedomusClient
 EedomusCoordinator = coordinator_mod.EedomusCoordinator
 interpret_push_payload = webhook.interpret_push_payload
@@ -231,6 +234,25 @@ class MappingTests(unittest.TestCase):
         self.assertTrue(is_on_value("on"))
         self.assertFalse(is_on_value(0))
         self.assertFalse(is_on_value("off"))
+
+    def test_consommation_maps_to_power(self):
+        result = resolve_mapping(
+            {
+                "usage_id": "9999",
+                "usage_name": "Consomètre",
+                "name": "Consommation sèche linge EDF",
+            }
+        )
+        self.assertEqual(result["platform"], "sensor")
+        self.assertEqual(result["device_class"], "power")
+        self.assertEqual(result["unit"], "W")
+
+    def test_extract_value_aliases(self):
+        self.assertEqual(extract_last_value({"value": "379.3"}), "379.3")
+        self.assertEqual(
+            merge_value_fields({}, {"value": "379.3"})["last_value"], "379.3"
+        )
+        self.assertEqual(coerce_number("379,3"), 379.3)
 
 
 class ApiHostTests(unittest.TestCase):
@@ -320,6 +342,38 @@ class CoordinatorPushTests(unittest.TestCase):
         client = MagicMock()
         coord = EedomusCoordinator(hass, client, ["1"], scan_interval=0)
         self.assertIsNone(coord.update_interval)
+
+    def test_update_enriches_missing_values_via_caract(self):
+        import asyncio
+
+        hass = MagicMock()
+        client = MagicMock()
+
+        async def _list():
+            return [
+                {
+                    "periph_id": "55",
+                    "name": "Consommation sèche linge",
+                    "usage_name": "Consomètre",
+                    "usage_id": "9999",
+                    "room_name": "Dans EDF",
+                }
+            ]
+
+        async def _caracts(ids):
+            return {
+                "55": {
+                    "periph_id": "55",
+                    "last_value": "379.3",
+                    "last_value_change": "2026-11-10 17:29:00",
+                }
+            }
+
+        client.async_get_peripherals = _list
+        client.async_get_caracts = _caracts
+        coord = EedomusCoordinator(hass, client, ["55"], scan_interval=60)
+        data = asyncio.run(coord._async_update_data())
+        self.assertEqual(data["55"]["last_value"], "379.3")
 
 
 if __name__ == "__main__":

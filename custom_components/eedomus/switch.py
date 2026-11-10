@@ -11,6 +11,7 @@ from .const import DOMAIN
 from .coordinator import EedomusCoordinator
 from .entity import EedomusEntity
 from .mapping import is_on_value, resolve_mapping
+from .values import extract_last_value
 
 
 async def async_setup_entry(
@@ -38,4 +39,4 @@ class EedomusSwitch(EedomusEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool:
-        return is_on_value(self.periph_data.get("last_value"))
+        return is_on_value(extract_last_value(self.periph_data))

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Version 1.1.7 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
+        "description": "Version 1.1.8 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",

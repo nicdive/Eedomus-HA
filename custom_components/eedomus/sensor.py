@@ -11,6 +11,7 @@ from .const import DOMAIN
 from .coordinator import EedomusCoordinator
 from .entity import EedomusEntity
 from .mapping import coerce_number, resolve_mapping
+from .values import extract_last_value
 
 
 async def async_setup_entry(
@@ -40,7 +41,7 @@ class EedomusSensor(EedomusEntity, SensorEntity):
     @property
     def native_value(self):
         data = self.periph_data
-        value = data.get("last_value")
-        if value in (None, "") and data.get("last_value_text") not in (None, ""):
+        value = extract_last_value(data)
+        if value is None and data.get("last_value_text") not in (None, ""):
             return data.get("last_value_text")
         return coerce_number(value)

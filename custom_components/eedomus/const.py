@@ -95,8 +95,21 @@ NAME_HINTS: list[tuple[tuple[str, ...], dict]] = [
     (("volet", "store", "shutter", "blind", "rideau"), USAGE_MAPPING["48"]),
     (("lampe", "light", "éclairage", "eclairage", "dimmer"), USAGE_MAPPING["1"]),
     (("prise", "switch", "relais", "on/off", "onoff"), USAGE_MAPPING["2"]),
-    (("puissance", "watt", "power"), USAGE_MAPPING["28"]),
-    (("conso", "énergie", "energie", "kwh", "energy"), USAGE_MAPPING["29"]),
+    # Instantaneous power (W) — "Consomètre", "Consommation …" in watts
+    (
+        (
+            "consomètre",
+            "consometre",
+            "puissance",
+            "watt",
+            "power",
+            "consommation",
+            "conso",
+        ),
+        USAGE_MAPPING["28"],
+    ),
+    # Cumulative energy (kWh)
+    (("kwh", "énergie", "energie", "compteur elec", "compteur élec", "index"), USAGE_MAPPING["29"]),
     (("ouverture", "porte", "fenêtre", "fenetre", "contact", "door", "window"), {
         "platform": "binary_sensor",
         "device_class": "opening",

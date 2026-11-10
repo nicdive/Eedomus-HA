@@ -11,6 +11,7 @@ from .const import DOMAIN
 from .coordinator import EedomusCoordinator
 from .entity import EedomusEntity
 from .mapping import coerce_number, is_on_value, resolve_mapping
+from .values import extract_last_value
 
 
 async def async_setup_entry(
@@ -42,13 +43,13 @@ class EedomusLight(EedomusEntity, LightEntity):
 
     @property
     def is_on(self) -> bool:
-        return is_on_value(self.periph_data.get("last_value"))
+        return is_on_value(extract_last_value(self.periph_data))
 
     @property
     def brightness(self) -> int | None:
         if ColorMode.BRIGHTNESS not in (self._attr_supported_color_modes or set()):
             return None
-        value = coerce_number(self.periph_data.get("last_value"))
+        value = coerce_number(extract_last_value(self.periph_data))
         if value is None or isinstance(value, str):
             return None
         # eedomus dimmers are typically 0–100.

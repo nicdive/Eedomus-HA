@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Version 1.1.7 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
+        "description": "Version 1.1.8 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",

@@ -14,6 +14,7 @@ from .const import DOMAIN
 from .coordinator import EedomusCoordinator
 from .entity import EedomusEntity
 from .mapping import coerce_number, resolve_mapping
+from .values import extract_last_value
 
 
 async def async_setup_entry(
@@ -42,7 +43,7 @@ class EedomusCover(EedomusEntity, CoverEntity):
 
     @property
     def current_cover_position(self) -> int | None:
-        value = coerce_number(self.periph_data.get("last_value"))
+        value = coerce_number(extract_last_value(self.periph_data))
         if value is None or isinstance(value, str):
             return None
         return max(0, min(100, int(round(float(value)))))

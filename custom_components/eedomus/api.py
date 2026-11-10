@@ -187,14 +187,62 @@ class EedomusClient:
 
     async def async_get_caract(self, periph_id: str | int) -> dict[str, Any]:
         """Return characteristics / current value for one peripheral."""
+        pid = str(periph_id)
         body = await self._request(
             "get",
             "periph.caract",
-            {"periph_id": str(periph_id)},
+            {"periph_id": pid},
         )
+        if isinstance(body, list):
+            # Some firmwares return a one-element list even for a single id.
+            for item in body:
+                if isinstance(item, dict) and str(item.get("periph_id") or "") == pid:
+                    return item
+            if len(body) == 1 and isinstance(body[0], dict):
+                return body[0]
+            raise EedomusApiError(f"Invalid caract list for {pid}")
         if not isinstance(body, dict):
-            raise EedomusApiError(f"Invalid caract for {periph_id}")
+            raise EedomusApiError(f"Invalid caract for {pid}")
         return body
+
+    async def async_get_caracts(self, periph_ids: list[str | int]) -> dict[str, dict[str, Any]]:
+        """Fetch caract for many peripherals (comma-separated API call)."""
+        ids = [str(pid) for pid in periph_ids if str(pid)]
+        if not ids:
+            return {}
+        body = await self._request(
+            "get",
+            "periph.caract",
+            {"periph_id": ",".join(ids)},
+            timeout=60,
+        )
+        items: list[Any]
+        if isinstance(body, list):
+            items = body
+        elif isinstance(body, dict):
+            # Single id → dict; multi may wrap under a list key.
+            for key in ("peripherals", "list", "items", "caract"):
+                if isinstance(body.get(key), list):
+                    items = body[key]
+                    break
+            else:
+                items = [body]
+        else:
+            raise EedomusApiError(
+                f"Invalid caract batch response ({type(body).__name__})"
+            )
+
+        by_id: dict[str, dict[str, Any]] = {}
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            pid = str(item.get("periph_id") or "")
+            if pid:
+                by_id[pid] = item
+        # Fallback: single requested id returned without periph_id field.
+        if not by_id and len(ids) == 1 and isinstance(body, dict):
+            by_id[ids[0]] = body
+        return by_id
 
     async def async_set_value(self, periph_id: str | int, value: str | int | float) -> None:
         """Set a peripheral value (actuator command or sensor history write)."""
