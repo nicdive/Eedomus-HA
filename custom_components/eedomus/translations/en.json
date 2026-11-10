@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Version 1.1.5 — Host = box IP (e.g. 192.168.23.171) → http://IP/api/…\nCredentials = api_user/api_secret (not web login).\nPoll: {scan_hint}\n\n>>> DETAILED ERROR: {last_error}",
+        "description": "Version 1.1.6 — If eedomus is ALREADY installed, do not use this HACS screen: open Settings → eedomus → Configure to switch to the local IP.\nHost → http://IP/api/get | Poll: {scan_hint}\nDetail: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",

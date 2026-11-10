@@ -90,8 +90,9 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 defaults[CONF_SCAN_INTERVAL] = scan_interval
 
                 if not api_user or not api_secret:
-                    errors["base"] = "invalid_auth"
-                    last_error = "api_user / api_secret vides"
+                    # Show raw text in the red banner (works even if translations lag).
+                    errors["base"] = "api_user/api_secret vides — ressaisir les identifiants API"
+                    last_error = errors["base"]
                 else:
                     client = EedomusClient(
                         session=async_eedomus_clientsession(self.hass, host),
@@ -108,7 +109,14 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     peripherals = await client.async_get_peripherals()
 
                     await self.async_set_unique_id(f"eedomus_{api_user}")
-                    self._abort_if_unique_id_configured()
+                    # If already installed (ex. via cloud), update host then abort cleanly.
+                    self._abort_if_unique_id_configured(
+                        updates={
+                            CONF_API_HOST: host,
+                            CONF_API_SECRET: api_secret,
+                            CONF_SCAN_INTERVAL: scan_interval,
+                        }
+                    )
 
                     self._host = host
                     self._api_user = api_user
@@ -120,16 +128,17 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 raise
             except EedomusAuthError as err:
                 _LOGGER.warning("eedomus auth failed: %s", err)
-                errors["base"] = "invalid_auth"
-                last_error = f"{type(err).__name__}: {err}"
+                errors["base"] = f"Auth: {err}"[:220]
+                last_error = errors["base"]
             except EedomusApiError as err:
                 _LOGGER.warning("eedomus API failed: %s", err)
-                errors["base"] = "cannot_connect"
-                last_error = f"{type(err).__name__}: {err}"
+                errors["base"] = f"API {host}: {err}"[:220]
+                last_error = errors["base"]
             except Exception as err:  # noqa: BLE001
                 _LOGGER.exception("Unexpected error during eedomus setup")
-                errors["base"] = "unknown"
-                last_error = f"{type(err).__name__}: {err}"
+                # Put the real exception in the red banner (not only "Erreur inattendue").
+                errors["base"] = f"{type(err).__name__}: {err}"[:220]
+                last_error = errors["base"]
 
         return self.async_show_form(
             step_id="user",
