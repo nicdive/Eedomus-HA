@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Hôte = IP locale de la box (ex. 192.168.x.x), pas le login web.\nIdentifiants = api_user / api_secret (Mon compte → Identifiants API), pas le mot de passe du portail.\n\nPolling de secours : {scan_hint}\nDernière erreur : {last_error}",
+        "description": "Version 1.1.4 — Hôte = IP box (ex. 192.168.x.x). Identifiants = api_user/api_secret (pas le login web).\nPolling : {scan_hint}\n\n>>> ERREUR DÉTAILLÉE : {last_error}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",
@@ -23,7 +23,7 @@
       "cannot_connect": "Impossible de contacter la box / l'API eedomus",
       "invalid_auth": "Identifiants API invalides",
       "no_devices": "Sélectionnez au moins un périphérique",
-      "unknown": "Erreur inattendue"
+      "unknown": "Erreur inattendue — voir le détail >>> ci-dessous (et Journaux HA)"
     },
     "abort": {
       "already_configured": "Cette box eedomus est déjà configurée"
