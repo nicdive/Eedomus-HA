@@ -111,8 +111,7 @@ class EedomusClient:
                 headers={"Accept": "application/json, text/plain, */*"},
             ) as resp:
                 raw = await resp.read()
-                # Local box firmware may not advertise UTF-8 correctly.
-                text = raw.decode("utf-8", errors="replace")
+                text = _decode_response_text(raw, resp.content_type)
                 if resp.status >= 400:
                     raise EedomusApiError(
                         f"HTTP {resp.status} from {url}: {text[:200]}"
@@ -204,3 +203,23 @@ class EedomusClient:
             "periph.value",
             {"periph_id": str(periph_id), "value": str(value)},
         )
+
+
+def _decode_response_text(raw: bytes, content_type: str | None) -> str:
+    """Decode eedomus body; local firmware often sends cp1252/latin-1."""
+    candidates: list[str] = []
+    if content_type and "charset=" in content_type.lower():
+        charset = content_type.lower().split("charset=", 1)[1].split(";", 1)[0]
+        candidates.append(charset.strip().strip('"').strip("'"))
+    candidates.extend(["utf-8", "cp1252", "latin-1"])
+
+    seen: set[str] = set()
+    for encoding in candidates:
+        if not encoding or encoding in seen:
+            continue
+        seen.add(encoding)
+        try:
+            return raw.decode(encoding)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return raw.decode("utf-8", errors="replace")

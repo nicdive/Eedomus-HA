@@ -191,7 +191,7 @@ class MappingTests(unittest.TestCase):
         )
         self.assertEqual(result["platform"], "cover")
 
-    def test_label_contains_id(self):
+    def test_label_room_first(self):
         label = peripheral_label(
             {
                 "periph_id": "123",
@@ -199,11 +199,26 @@ class MappingTests(unittest.TestCase):
                 "room_name": "Cuisine",
                 "usage_id": "7",
                 "usage_name": "Température",
-            }
+            },
+            sort_by="room",
         )
         self.assertIn("#123", label)
+        self.assertTrue(label.startswith("Cuisine"))
+        self.assertIn("Temp Cuisine", label)
+        self.assertIn("Capteur", label)
+
+    def test_label_type_first(self):
+        label = peripheral_label(
+            {
+                "periph_id": "123",
+                "name": "Temp Cuisine",
+                "room_name": "Cuisine",
+                "usage_id": "7",
+            },
+            sort_by="type",
+        )
+        self.assertTrue(label.startswith("Capteur"))
         self.assertIn("Cuisine", label)
-        self.assertIn("[sensor]", label)
 
     def test_coerce_number(self):
         self.assertEqual(coerce_number("21,5"), 21.5)
