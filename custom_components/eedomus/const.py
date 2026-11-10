@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from homeassistant.const import (
+    LIGHT_LUX,
     PERCENTAGE,
     UnitOfEnergy,
-    UnitOfIlluminance,
     UnitOfPower,
     UnitOfTemperature,
 )
@@ -55,7 +55,7 @@ USAGE_MAPPING: dict[str, dict] = {
     "24": {
         "platform": "sensor",
         "device_class": SensorDeviceClass.ILLUMINANCE,
-        "unit": UnitOfIlluminance.LUX,
+        "unit": LIGHT_LUX,
         "state_class": SensorStateClass.MEASUREMENT,
     },
     "26": {
