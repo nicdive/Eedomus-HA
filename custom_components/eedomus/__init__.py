@@ -58,8 +58,11 @@ async def _ensure_webhook_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up eedomus from a config entry."""
     host = entry.data.get(CONF_API_HOST) or entry.data.get(CONF_HOST)
+    session = async_get_clientsession(
+        hass, verify_ssl=not EedomusClient.is_local_host(str(host))
+    )
     client = EedomusClient(
-        session=async_get_clientsession(hass),
+        session=session,
         host=host,
         api_user=entry.data[CONF_API_USER],
         api_secret=entry.data[CONF_API_SECRET],
