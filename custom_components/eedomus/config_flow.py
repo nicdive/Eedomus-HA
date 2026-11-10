@@ -9,7 +9,6 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -27,8 +26,8 @@ from .const import (
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
 )
+from .helpers import webhook_url_for_entry
 from .mapping import peripheral_label
-from .webhook import webhook_url_for_entry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,7 +68,7 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Ask for API connection details."""
         errors: dict[str, str] = {}
 
@@ -134,7 +133,7 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_devices(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Let the user pick which peripherals to import."""
         options = _build_device_options(self._peripherals)
 
@@ -194,7 +193,7 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         errors: dict[str, str] = {}
         entry = self.config_entry
         data = entry.data

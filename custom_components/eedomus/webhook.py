@@ -6,31 +6,24 @@ import json
 import logging
 from typing import Any
 
-from aiohttp.web import Request, Response
 from homeassistant.components import webhook as ha_webhook
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.network import get_url
 
 from .const import DOMAIN
 from .coordinator import EedomusCoordinator
+from .helpers import webhook_url_for_entry
 
 _LOGGER = logging.getLogger(__name__)
 
 WEBHOOK_NAME = "eedomus push"
 
-
-def webhook_url_for_entry(hass: HomeAssistant, webhook_id: str) -> str:
-    """Build a LAN-friendly webhook URL for the eedomus HTTP actuator."""
-    try:
-        base = get_url(
-            hass,
-            prefer_external=False,
-            allow_cloud=False,
-            allow_external=False,
-        )
-    except Exception:  # noqa: BLE001 — network helpers raise several types
-        base = "http://HOME_ASSISTANT_IP:8123"
-    return f"{base.rstrip('/')}/api/webhook/{webhook_id}"
+# Re-export for callers that historically imported it from this module.
+__all__ = [
+    "async_register_webhook",
+    "async_unregister_webhook",
+    "interpret_push_payload",
+    "webhook_url_for_entry",
+]
 
 
 def async_register_webhook(
@@ -106,8 +99,10 @@ def _make_handler(entry_id: str):
     async def _handle_webhook(
         hass: HomeAssistant,
         webhook_id: str,
-        request: Request,
-    ) -> Response:
+        request: Any,
+    ) -> Any:
+        from aiohttp.web import Response
+
         coordinator = _coordinator_for_entry(hass, entry_id)
         if coordinator is None:
             _LOGGER.warning("Webhook %s: coordinator missing for %s", webhook_id, entry_id)
@@ -164,7 +159,7 @@ def _coordinator_for_entry(
     return None
 
 
-async def _extract_payload(request: Request) -> dict[str, Any]:
+async def _extract_payload(request: Any) -> dict[str, Any]:
     """Merge query string, JSON body and form fields into one dict."""
     payload: dict[str, Any] = dict(request.query)
 
