@@ -18,8 +18,8 @@ def _stub_homeassistant() -> None:
     ha.__path__ = []  # mark as package
     ha_const = types.ModuleType("homeassistant.const")
     ha_const.PERCENTAGE = "%"
+    ha_const.LIGHT_LUX = "lx"
     ha_const.UnitOfEnergy = types.SimpleNamespace(KILO_WATT_HOUR="kWh")
-    ha_const.UnitOfIlluminance = types.SimpleNamespace(LUX="lx")
     ha_const.UnitOfPower = types.SimpleNamespace(WATT="W")
     ha_const.UnitOfTemperature = types.SimpleNamespace(CELSIUS="°C")
 
