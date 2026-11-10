@@ -8,7 +8,6 @@ import secrets
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
@@ -25,6 +24,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import EedomusCoordinator
+from .http import async_eedomus_clientsession
 from .webhook import async_register_webhook, async_unregister_webhook
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,14 +58,16 @@ async def _ensure_webhook_id(hass: HomeAssistant, entry: ConfigEntry) -> str:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up eedomus from a config entry."""
     host = entry.data.get(CONF_API_HOST) or entry.data.get(CONF_HOST)
-    session = async_get_clientsession(
-        hass, verify_ssl=not EedomusClient.is_local_host(str(host))
-    )
     client = EedomusClient(
-        session=session,
+        session=async_eedomus_clientsession(hass, str(host)),
         host=host,
         api_user=entry.data[CONF_API_USER],
         api_secret=entry.data[CONF_API_SECRET],
+    )
+    _LOGGER.info(
+        "eedomus setup host=%s base_url=%s",
+        host,
+        client.base_url,
     )
 
     selected = entry.options.get(CONF_SELECTED_DEVICES) or entry.data.get(

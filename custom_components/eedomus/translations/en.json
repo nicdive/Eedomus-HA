@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Version 1.1.4 — Host = box IP (e.g. 192.168.x.x). Credentials = api_user/api_secret (not web login).\nPoll: {scan_hint}\n\n>>> DETAILED ERROR: {last_error}",
+        "description": "Version 1.1.5 — Host = box IP (e.g. 192.168.23.171) → http://IP/api/…\nCredentials = api_user/api_secret (not web login).\nPoll: {scan_hint}\n\n>>> DETAILED ERROR: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",
@@ -33,8 +33,9 @@
     "step": {
       "init": {
         "title": "eedomus options",
-        "description": "Change peripherals and the backup poll interval (0 = webhook only).\n\nWebhook URL for an eedomus HTTP actuator:\n{webhook_url}\n\nGET example: {webhook_url}?periph_id=123&value=100",
+        "description": "Switch host to local box IP. Effective API URL: {base_url}\n\nPush webhook:\n{webhook_url}\n\nError: {last_error}",
         "data": {
+          "api_host": "API host (local IP or api.eedomus.com)",
           "selected_devices": "Peripherals",
           "scan_interval": "Backup poll (0 = webhook only)"
         }

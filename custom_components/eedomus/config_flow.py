@@ -11,7 +11,6 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow
 from homeassistant.helpers import selector
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import EedomusApiError, EedomusAuthError, EedomusClient
 from .const import (
@@ -28,6 +27,7 @@ from .const import (
     MIN_SCAN_INTERVAL,
 )
 from .helpers import webhook_url_for_entry
+from .http import async_eedomus_clientsession
 from .mapping import peripheral_label
 
 _LOGGER = logging.getLogger(__name__)
@@ -93,20 +93,16 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     errors["base"] = "invalid_auth"
                     last_error = "api_user / api_secret vides"
                 else:
-                    # Prefer verify_ssl=False on LAN; fall back if HA build differs.
-                    try:
-                        session = async_get_clientsession(
-                            self.hass,
-                            verify_ssl=not EedomusClient.is_local_host(host),
-                        )
-                    except TypeError:
-                        session = async_get_clientsession(self.hass)
-
                     client = EedomusClient(
-                        session=session,
+                        session=async_eedomus_clientsession(self.hass, host),
                         host=host,
                         api_user=api_user,
                         api_secret=api_secret,
+                    )
+                    _LOGGER.info(
+                        "eedomus config_flow trying host=%s base_url=%s",
+                        host,
+                        client.base_url,
                     )
                     await client.async_test_auth()
                     peripherals = await client.async_get_peripherals()
@@ -223,14 +219,18 @@ def _devices_schema(
 
 
 class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
-    """Options: re-select devices and tweak poll interval."""
+    """Options: host, devices, poll interval."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ):
         errors: dict[str, str] = {}
+        last_error = ""
         entry = self.config_entry
         data = entry.data
+        current_host = str(
+            entry.options.get(CONF_API_HOST) or data.get(CONF_API_HOST) or ""
+        )
         current_selected = [str(i) for i in (
             entry.options.get(CONF_SELECTED_DEVICES)
             or data.get(CONF_SELECTED_DEVICES, [])
@@ -248,27 +248,39 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
             else "(webhook non encore initialisé — rechargez l'intégration)"
         )
 
-        host = data[CONF_API_HOST]
+        # Probe with current host so the device list can refresh.
+        probe_host = current_host
+        if user_input is not None:
+            probe_host = str(user_input.get(CONF_API_HOST, current_host)).strip()
+
+        peripherals: list[dict[str, Any]] = []
         client = EedomusClient(
-            session=async_get_clientsession(
-                self.hass, verify_ssl=not EedomusClient.is_local_host(host)
-            ),
-            host=host,
+            session=async_eedomus_clientsession(self.hass, probe_host or current_host),
+            host=probe_host or current_host,
             api_user=data[CONF_API_USER],
             api_secret=data[CONF_API_SECRET],
         )
-
-        peripherals: list[dict[str, Any]] = []
         try:
+            await client.async_test_auth()
             peripherals = await client.async_get_peripherals()
-        except EedomusApiError:
+        except EedomusApiError as err:
             errors["base"] = "cannot_connect"
+            last_error = f"{client.base_url}: {err}"
+            _LOGGER.warning("eedomus options connect failed: %s", last_error)
 
         if user_input is not None and "base" not in errors:
             selected = [str(i) for i in user_input.get(CONF_SELECTED_DEVICES, [])]
             if not selected:
                 errors["base"] = "no_devices"
             else:
+                new_host = str(user_input[CONF_API_HOST]).strip()
+                # Persist host in entry data so setup uses the LAN box.
+                if new_host and new_host != data.get(CONF_API_HOST):
+                    self.hass.config_entries.async_update_entry(
+                        entry,
+                        data={**data, CONF_API_HOST: new_host},
+                        title=f"eedomus ({new_host})",
+                    )
                 return self.async_create_entry(
                     title="",
                     data={
@@ -292,6 +304,7 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Required(CONF_API_HOST, default=current_host): str,
                     vol.Required(
                         CONF_SELECTED_DEVICES, default=current_selected
                     ): selector.SelectSelector(
@@ -315,5 +328,9 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
                 }
             ),
             errors=errors,
-            description_placeholders={"webhook_url": webhook_url},
+            description_placeholders={
+                "webhook_url": webhook_url,
+                "last_error": last_error or "—",
+                "base_url": client.base_url if current_host else "—",
+            },
         )
