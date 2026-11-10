@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Version 1.1.6 — Si eedomus est DÉJÀ installé, n’utilisez pas cet écran HACS : allez dans Réglages → eedomus → Configurer pour passer en IP locale.\nHôte saisi → http://IP/api/get | Polling : {scan_hint}\nDétail : {last_error}",
+        "description": "Version 1.1.7 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",
@@ -11,9 +11,16 @@
           "scan_interval": "Polling de secours (0 = webhook seul)"
         }
       },
+      "organize": {
+        "title": "Classement de la liste",
+        "description": "Choisissez comment afficher les périphériques (par pièce ou par type). La liste sera ensuite en mode liste complète, plus lisible.",
+        "data": {
+          "sort_by": "Classer par"
+        }
+      },
       "devices": {
         "title": "Sélection des périphériques",
-        "description": "Choisissez les capteurs et actionneurs Z-Wave / RFX (ou autres) à importer. eedomus reste la passerelle radio ; HA reçoit les changements en push via webhook.",
+        "description": "{count} périphériques — classement par {sort_by}.\nCochez ceux à importer. Format : Pièce · Nom · Type #id",
         "data": {
           "selected_devices": "Périphériques"
         }
@@ -23,19 +30,20 @@
       "cannot_connect": "Impossible de contacter la box / l'API eedomus",
       "invalid_auth": "Identifiants API invalides",
       "no_devices": "Sélectionnez au moins un périphérique",
-      "unknown": "Erreur inattendue — voir le détail >>> ci-dessous (et Journaux HA)"
+      "unknown": "Erreur inattendue — voir le détail ci-dessous"
     },
     "abort": {
-      "already_configured": "Cette box eedomus est déjà configurée"
+      "already_configured": "Cette box eedomus est déjà configurée (hôte mis à jour si besoin)"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Options eedomus",
-        "description": "Changez l'hôte pour repasser en local (IP box). URL API effective : {base_url}\n\nWebhook push :\n{webhook_url}\n\nErreur : {last_error}",
+        "description": "Hôte API : {base_url}\nChanger le classement puis Valider rafraîchit la liste ; Valider une 2ᵉ fois enregistre.\nWebhook : {webhook_url}\nErreur : {last_error}",
         "data": {
           "api_host": "Hôte API (IP locale ou api.eedomus.com)",
+          "sort_by": "Classer la liste",
           "selected_devices": "Périphériques",
           "scan_interval": "Polling de secours (0 = webhook seul)"
         }

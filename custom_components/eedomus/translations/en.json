@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Version 1.1.6 — If eedomus is ALREADY installed, do not use this HACS screen: open Settings → eedomus → Configure to switch to the local IP.\nHost → http://IP/api/get | Poll: {scan_hint}\nDetail: {last_error}",
+        "description": "Version 1.1.7 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",
@@ -11,9 +11,16 @@
           "scan_interval": "Backup poll (0 = webhook only)"
         }
       },
+      "organize": {
+        "title": "List organization",
+        "description": "Choose how to display peripherals (by room or by type). The next screen uses a full checklist.",
+        "data": {
+          "sort_by": "Sort by"
+        }
+      },
       "devices": {
         "title": "Select peripherals",
-        "description": "Pick the Z-Wave / RFX (or other) sensors and actuators to import. eedomus stays the radio gateway; HA gets changes instantly via webhook push.",
+        "description": "{count} peripherals — sorted by {sort_by}.\nCheck devices to import. Format: Room · Name · Type #id",
         "data": {
           "selected_devices": "Peripherals"
         }
@@ -23,19 +30,20 @@
       "cannot_connect": "Could not reach the eedomus box / API",
       "invalid_auth": "Invalid API credentials",
       "no_devices": "Select at least one peripheral",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error — see detail below"
     },
     "abort": {
-      "already_configured": "This eedomus box is already configured"
+      "already_configured": "This eedomus box is already configured (host updated if needed)"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "eedomus options",
-        "description": "Switch host to local box IP. Effective API URL: {base_url}\n\nPush webhook:\n{webhook_url}\n\nError: {last_error}",
+        "description": "API host: {base_url}\nChange sort then Validate to refresh the list; Validate again to save.\nWebhook: {webhook_url}\nError: {last_error}",
         "data": {
           "api_host": "API host (local IP or api.eedomus.com)",
+          "sort_by": "Sort list",
           "selected_devices": "Peripherals",
           "scan_interval": "Backup poll (0 = webhook only)"
         }
