@@ -100,7 +100,7 @@ class EedomusClient:
 
         url = f"{self._base}/{kind}"
         safe_params = {**params, "api_secret": "***"}
-        _LOGGER.debug("eedomus request %s params=%s", url, safe_params)
+        _LOGGER.info("eedomus GET %s params=%s", url, safe_params)
 
         try:
             async with self._session.get(
@@ -108,6 +108,8 @@ class EedomusClient:
                 params=params,
                 timeout=aiohttp.ClientTimeout(total=timeout),
                 allow_redirects=True,
+                # Keep HA's default UA; override only if a proxy/middleware breaks LAN.
+                headers={"Accept": "application/json, text/plain, */*"},
             ) as resp:
                 text = await resp.text()
                 if resp.status >= 400:

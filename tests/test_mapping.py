@@ -238,6 +238,12 @@ class ApiHostTests(unittest.TestCase):
         self.assertTrue(EedomusClient.is_local_host("192.168.23.171"))
         self.assertFalse(EedomusClient.is_local_host("api.eedomus.com"))
 
+    def test_user_lan_ip_matches_portal_url(self):
+        """IP saisie → même URL que le constructeur API eedomus."""
+        base = EedomusClient._normalize_base("192.168.23.171")
+        self.assertEqual(base, "http://192.168.23.171/api")
+        self.assertEqual(f"{base}/get", "http://192.168.23.171/api/get")
+
 
 class WebhookPayloadTests(unittest.TestCase):
     def test_state_from_query_style(self):

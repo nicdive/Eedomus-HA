@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Version 1.1.4 — Hôte = IP box (ex. 192.168.x.x). Identifiants = api_user/api_secret (pas le login web).\nPolling : {scan_hint}\n\n>>> ERREUR DÉTAILLÉE : {last_error}",
+        "description": "Version 1.1.5 — Hôte = IP box (ex. 192.168.23.171) → http://IP/api/…\nIdentifiants = api_user/api_secret (pas le login web).\nPolling : {scan_hint}\n\n>>> ERREUR DÉTAILLÉE : {last_error}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",
@@ -33,8 +33,9 @@
     "step": {
       "init": {
         "title": "Options eedomus",
-        "description": "Sélection des périphériques et polling de secours (0 = webhook uniquement).\n\nURL webhook à coller dans un Actionneur HTTP eedomus :\n{webhook_url}\n\nExemple GET : {webhook_url}?periph_id=123&value=100",
+        "description": "Changez l'hôte pour repasser en local (IP box). URL API effective : {base_url}\n\nWebhook push :\n{webhook_url}\n\nErreur : {last_error}",
         "data": {
+          "api_host": "Hôte API (IP locale ou api.eedomus.com)",
           "selected_devices": "Périphériques",
           "scan_interval": "Polling de secours (0 = webhook seul)"
         }
