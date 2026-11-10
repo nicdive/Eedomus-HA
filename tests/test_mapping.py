@@ -206,8 +206,8 @@ class MappingTests(unittest.TestCase):
             sort_by="room",
         )
         self.assertIn("#123", label)
-        self.assertTrue(label.startswith("Cuisine"))
-        self.assertIn("Temp Cuisine", label)
+        self.assertTrue(label.startswith("Temp Cuisine\n"))
+        self.assertIn("Cuisine", label)
         self.assertIn("Capteur", label)
 
     def test_label_type_first(self):
@@ -220,7 +220,8 @@ class MappingTests(unittest.TestCase):
             },
             sort_by="type",
         )
-        self.assertTrue(label.startswith("Capteur"))
+        self.assertTrue(label.startswith("Temp Cuisine\n"))
+        self.assertIn("Capteur", label)
         self.assertIn("Cuisine", label)
 
     def test_coerce_number(self):

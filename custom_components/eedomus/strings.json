@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Version 1.1.9 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
+        "description": "Version 1.1.10 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",
@@ -13,14 +13,14 @@
       },
       "organize": {
         "title": "Classement de la liste",
-        "description": "Choisissez comment afficher les périphériques (par pièce ou par type). La liste sera ensuite en mode liste complète, plus lisible.",
+        "description": "Choisissez comment afficher les périphériques (par pièce ou par type). Ensuite : sélecteur large avec recherche (plus confortable sur téléphone).",
         "data": {
           "sort_by": "Classer par"
         }
       },
       "devices": {
         "title": "Sélection des périphériques",
-        "description": "{count} périphériques — classement par {sort_by}.\nCochez ceux à importer. Format : Pièce · Nom · Type #id",
+        "description": "{count} périphériques — classement par {sort_by}.\nOuvrez le sélecteur (grand écran + recherche). Chaque ligne : Nom, puis pièce · type.",
         "data": {
           "selected_devices": "Périphériques"
         }
