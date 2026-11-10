@@ -13,8 +13,12 @@ from homeassistant.util import dt as dt_util
 
 from .api import EedomusApiError, EedomusClient
 from .const import DOMAIN
+from .values import extract_last_value, has_usable_value, merge_value_fields
 
 _LOGGER = logging.getLogger(__name__)
+
+# Avoid hammering the box when many peripherals are selected.
+_CARACT_BATCH = 8
 
 
 class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
@@ -105,12 +109,51 @@ class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             or self.peripherals.get(pid)
             or {"periph_id": pid}
         )
-        current.update(caract)
+        current = merge_value_fields(current, caract)
         current["periph_id"] = pid
         merged = dict(self.data or self.peripherals)
         merged[pid] = current
         self.peripherals = merged
         self.async_set_updated_data(merged)
+
+    async def _async_enrich_caract(
+        self, by_id: dict[str, dict[str, Any]], periph_ids: list[str]
+    ) -> None:
+        """Fetch periph.caract for the given ids and merge into by_id."""
+        for offset in range(0, len(periph_ids), _CARACT_BATCH):
+            batch = periph_ids[offset : offset + _CARACT_BATCH]
+            try:
+                caracts = await self.client.async_get_caracts(batch)
+            except EedomusApiError as err:
+                _LOGGER.warning(
+                    "Batch caract failed (%s), falling back per id: %s",
+                    ",".join(batch),
+                    err,
+                )
+                caracts = {}
+                results = await asyncio.gather(
+                    *(self.client.async_get_caract(pid) for pid in batch),
+                    return_exceptions=True,
+                )
+                for pid, result in zip(batch, results):
+                    if isinstance(result, Exception):
+                        _LOGGER.warning("Could not refresh periph %s: %s", pid, result)
+                        continue
+                    caracts[pid] = result
+
+            for pid in batch:
+                result = caracts.get(pid)
+                if result is None:
+                    _LOGGER.warning("No caract payload for periph %s", pid)
+                    continue
+                by_id[pid] = merge_value_fields(by_id.get(pid, {"periph_id": pid}), result)
+                value = extract_last_value(by_id[pid])
+                _LOGGER.debug(
+                    "eedomus caract %s last_value=%r usage=%s",
+                    pid,
+                    value,
+                    by_id[pid].get("usage_name") or by_id[pid].get("usage_id"),
+                )
 
     async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         try:
@@ -123,24 +166,30 @@ class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             periph_id = str(periph.get("periph_id") or "")
             if not periph_id or periph_id not in self.selected_ids:
                 continue
-            by_id[periph_id] = dict(periph)
+            by_id[periph_id] = merge_value_fields({"periph_id": periph_id}, dict(periph))
 
-        # Enrich devices missing last_value (typical for cloud periph.list).
-        missing = [
-            pid
-            for pid, data in by_id.items()
-            if "last_value" not in data or data.get("last_value") in (None, "")
-        ]
+        # periph.list often omits live values — always pull caract for empties.
+        missing = [pid for pid, data in by_id.items() if not has_usable_value(data)]
+        # Also refresh any selected id absent from list (renamed/hidden edge cases).
+        for pid in self.selected_ids:
+            if pid not in by_id:
+                by_id[pid] = {"periph_id": pid}
+                missing.append(pid)
+
         if missing:
-            results = await asyncio.gather(
-                *(self.client.async_get_caract(pid) for pid in missing),
-                return_exceptions=True,
+            _LOGGER.info(
+                "eedomus enriching %s peripheral(s) via periph.caract", len(missing)
             )
-            for pid, result in zip(missing, results):
-                if isinstance(result, Exception):
-                    _LOGGER.warning("Could not refresh periph %s: %s", pid, result)
-                    continue
-                by_id[pid] = {**by_id[pid], **result}
+            await self._async_enrich_caract(by_id, missing)
+
+        still_empty = [
+            pid for pid, data in by_id.items() if not has_usable_value(data)
+        ]
+        if still_empty:
+            _LOGGER.warning(
+                "eedomus peripherals still without value after caract: %s",
+                ", ".join(still_empty[:20]),
+            )
 
         self.peripherals = by_id
         return by_id

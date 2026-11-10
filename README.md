@@ -41,7 +41,7 @@ Intégration custom qui remonte **uniquement les capteurs et actionneurs que vou
 2. **Identifiant / mot de passe API**  
    Dans eedomus : *Configuration → Mon compte → API utilisateur*
 3. Choisissez les périphériques à importer dans la liste
-4. **Polling de secours** : `300` s par défaut, ou `0` pour ne plus poller du tout une fois le webhook en place
+4. **Polling de secours** : `300` s par défaut, ou `0` pour ne plus poller du tout une fois le webhook en place. Pour les **consomètres / puissance (W)** sans règle push eedomus, gardez un polling (ex. 30–60 s) : `periph.list` ne contient pas la valeur live, l’intégration la lit via `periph.caract`.
 
 Pour modifier la sélection / voir l’URL webhook plus tard : ouvrir l’intégration → **Configurer**.
 
