@@ -58,11 +58,12 @@ USAGE_MAPPING: dict[str, dict] = {
         "unit": LIGHT_LUX,
         "state_class": SensorStateClass.MEASUREMENT,
     },
+    # 26 = Consomètre (puissance instantanée en W) — pas l'énergie cumulée.
     "26": {
         "platform": "sensor",
-        "device_class": SensorDeviceClass.ENERGY,
-        "unit": UnitOfEnergy.KILO_WATT_HOUR,
-        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.POWER,
+        "unit": UnitOfPower.WATT,
+        "state_class": SensorStateClass.MEASUREMENT,
     },
     "27": {"platform": "binary_sensor", "device_class": "smoke"},
     "28": {
@@ -72,6 +73,13 @@ USAGE_MAPPING: dict[str, dict] = {
         "state_class": SensorStateClass.MEASUREMENT,
     },
     "29": {
+        "platform": "sensor",
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    # 0 = compteur / consommation cumulée (souvent kWh)
+    "0": {
         "platform": "sensor",
         "device_class": SensorDeviceClass.ENERGY,
         "unit": UnitOfEnergy.KILO_WATT_HOUR,
@@ -95,7 +103,12 @@ NAME_HINTS: list[tuple[tuple[str, ...], dict]] = [
     (("volet", "store", "shutter", "blind", "rideau"), USAGE_MAPPING["48"]),
     (("lampe", "light", "éclairage", "eclairage", "dimmer"), USAGE_MAPPING["1"]),
     (("prise", "switch", "relais", "on/off", "onoff"), USAGE_MAPPING["2"]),
-    # Instantaneous power (W) — "Consomètre", "Consommation …" in watts
+    # Cumulative energy first (more specific) so "index kWh" wins over "conso".
+    (
+        ("kwh", "énergie", "energie", "compteur elec", "compteur élec", "index"),
+        USAGE_MAPPING["29"],
+    ),
+    # Instantaneous power (W) — eedomus "Consomètre" / "Consommation …"
     (
         (
             "consomètre",
@@ -106,10 +119,8 @@ NAME_HINTS: list[tuple[tuple[str, ...], dict]] = [
             "consommation",
             "conso",
         ),
-        USAGE_MAPPING["28"],
+        USAGE_MAPPING["26"],
     ),
-    # Cumulative energy (kWh)
-    (("kwh", "énergie", "energie", "compteur elec", "compteur élec", "index"), USAGE_MAPPING["29"]),
     (("ouverture", "porte", "fenêtre", "fenetre", "contact", "door", "window"), {
         "platform": "binary_sensor",
         "device_class": "opening",

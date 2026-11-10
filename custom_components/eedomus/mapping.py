@@ -17,17 +17,19 @@ PLATFORM_LABELS = {
 
 def resolve_mapping(periph: dict[str, Any]) -> dict[str, Any]:
     """Resolve HA platform metadata for a peripheral."""
-    usage_id = str(periph.get("usage_id") or "").strip()
-    if usage_id in USAGE_MAPPING:
-        return dict(USAGE_MAPPING[usage_id])
-
     haystack = " ".join(
         str(periph.get(key) or "").lower()
         for key in ("usage_name", "name")
     )
+
+    # Name/usage text wins over a wrong usage_id (ex. Consomètre vs kWh).
     for keywords, mapping in NAME_HINTS:
         if any(keyword in haystack for keyword in keywords):
             return dict(mapping)
+
+    usage_id = str(periph.get("usage_id") or "").strip()
+    if usage_id in USAGE_MAPPING:
+        return dict(USAGE_MAPPING[usage_id])
 
     # Default: read-only sensor so the user still sees the value.
     return {"platform": "sensor"}

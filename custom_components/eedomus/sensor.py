@@ -33,10 +33,21 @@ class EedomusSensor(EedomusEntity, SensorEntity):
 
     def __init__(self, coordinator: EedomusCoordinator, periph_id: str) -> None:
         super().__init__(coordinator, periph_id)
-        mapping = resolve_mapping(self.periph_data)
-        self._attr_device_class = mapping.get("device_class")
-        self._attr_native_unit_of_measurement = mapping.get("unit")
-        self._attr_state_class = mapping.get("state_class")
+
+    def _mapping(self) -> dict:
+        return resolve_mapping(self.periph_data)
+
+    @property
+    def device_class(self):
+        return self._mapping().get("device_class")
+
+    @property
+    def native_unit_of_measurement(self):
+        return self._mapping().get("unit")
+
+    @property
+    def state_class(self):
+        return self._mapping().get("state_class")
 
     @property
     def native_value(self):
