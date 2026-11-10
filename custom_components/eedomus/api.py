@@ -108,10 +108,11 @@ class EedomusClient:
                 params=params,
                 timeout=aiohttp.ClientTimeout(total=timeout),
                 allow_redirects=True,
-                # Keep HA's default UA; override only if a proxy/middleware breaks LAN.
                 headers={"Accept": "application/json, text/plain, */*"},
             ) as resp:
-                text = await resp.text()
+                raw = await resp.read()
+                # Local box firmware may not advertise UTF-8 correctly.
+                text = raw.decode("utf-8", errors="replace")
                 if resp.status >= 400:
                     raise EedomusApiError(
                         f"HTTP {resp.status} from {url}: {text[:200]}"
@@ -129,6 +130,10 @@ class EedomusClient:
         except aiohttp.ClientError as err:
             raise EedomusApiError(
                 f"HTTP error contacting {self._base}: {err}"
+            ) from err
+        except UnicodeError as err:
+            raise EedomusApiError(
+                f"Encoding error from {self._base}: {err}"
             ) from err
 
         if not isinstance(data, dict):
