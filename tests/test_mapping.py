@@ -154,6 +154,7 @@ _load_module("eedomus.const", "const.py")
 mapping = _load_module("eedomus.mapping", "mapping.py")
 api = _load_module("eedomus.api", "api.py")
 coordinator_mod = _load_module("eedomus.coordinator", "coordinator.py")
+helpers = _load_module("eedomus.helpers", "helpers.py")
 webhook = _load_module("eedomus.webhook", "webhook.py")
 
 resolve_mapping = mapping.resolve_mapping
@@ -163,7 +164,7 @@ is_on_value = mapping.is_on_value
 EedomusClient = api.EedomusClient
 EedomusCoordinator = coordinator_mod.EedomusCoordinator
 interpret_push_payload = webhook.interpret_push_payload
-webhook_url_for_entry = webhook.webhook_url_for_entry
+webhook_url_for_entry = helpers.webhook_url_for_entry
 
 
 class MappingTests(unittest.TestCase):

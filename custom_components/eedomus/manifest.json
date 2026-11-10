@@ -1,11 +1,11 @@
 {
   "domain": "eedomus",
   "name": "eedomus",
-  "codeowners": ["@nicolas-buanec"],
+  "codeowners": ["@nicdive"],
   "config_flow": true,
-  "documentation": "https://doc.eedomus.com/index.php/API_eedomus",
+  "documentation": "https://github.com/nicdive/Eedomus-HA",
   "iot_class": "local_push",
-  "issue_tracker": "",
-  "requirements": ["aiohttp>=3.9.0"],
-  "version": "1.1.0"
+  "issue_tracker": "https://github.com/nicdive/Eedomus-HA/issues",
+  "requirements": [],
+  "version": "1.1.1"
 }
