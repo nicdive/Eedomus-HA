@@ -1,0 +1,12 @@
+refresh:
+  name: Rafraîchir
+  description: >
+    Relance un polling eedomus (tous les périphériques sélectionnés, ou un seul
+    si periph_id est fourni). Utile en secours du webhook push.
+  fields:
+    periph_id:
+      name: Code API périphérique
+      description: Optionnel — ne rafraîchir que ce periph_id.
+      example: "123456"
+      selector:
+        text:

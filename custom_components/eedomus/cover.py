@@ -55,19 +55,15 @@ class EedomusCover(EedomusEntity, CoverEntity):
         return position == 0
 
     async def async_open_cover(self, **kwargs) -> None:
-        await self.coordinator.client.async_set_value(self.periph_id, 100)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, 100)
 
     async def async_close_cover(self, **kwargs) -> None:
-        await self.coordinator.client.async_set_value(self.periph_id, 0)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, 0)
 
     async def async_set_cover_position(self, **kwargs) -> None:
         position = int(kwargs.get("position", 0))
-        await self.coordinator.client.async_set_value(self.periph_id, position)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, position)
 
     async def async_stop_cover(self, **kwargs) -> None:
         # Many eedomus shutter modules accept an intermediate / stop value.
-        await self.coordinator.client.async_set_value(self.periph_id, "STOP")
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, "STOP")

@@ -19,10 +19,12 @@ CONF_API_USER = "api_user"
 CONF_API_SECRET = "api_secret"
 CONF_SELECTED_DEVICES = "selected_devices"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_WEBHOOK_ID = "webhook_id"
 
 DEFAULT_API_HOST = "api.eedomus.com"
-DEFAULT_SCAN_INTERVAL = 60
-MIN_SCAN_INTERVAL = 15
+# Slow backup poll — real-time updates come from the eedomus HTTP webhook.
+DEFAULT_SCAN_INTERVAL = 300
+MIN_SCAN_INTERVAL = 0  # 0 = webhook-only (no polling)
 MAX_SCAN_INTERVAL = 900
 
 ATTR_PERIPH_ID = "periph_id"

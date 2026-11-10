@@ -1,4 +1,4 @@
-"""Unit tests for mapping helpers (no Home Assistant runtime required)."""
+"""Unit tests for mapping helpers and webhook payload parsing."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import sys
 import types
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock
 
 ROOT = Path(__file__).resolve().parents[1]
 PKG_DIR = ROOT / "custom_components" / "eedomus"
@@ -14,12 +15,16 @@ PKG_DIR = ROOT / "custom_components" / "eedomus"
 
 def _stub_homeassistant() -> None:
     ha = types.ModuleType("homeassistant")
+    ha.__path__ = []  # mark as package
     ha_const = types.ModuleType("homeassistant.const")
     ha_const.PERCENTAGE = "%"
     ha_const.UnitOfEnergy = types.SimpleNamespace(KILO_WATT_HOUR="kWh")
     ha_const.UnitOfIlluminance = types.SimpleNamespace(LUX="lx")
     ha_const.UnitOfPower = types.SimpleNamespace(WATT="W")
     ha_const.UnitOfTemperature = types.SimpleNamespace(CELSIUS="°C")
+
+    ha_core = types.ModuleType("homeassistant.core")
+    ha_core.HomeAssistant = object
 
     ha_sensor = types.ModuleType("homeassistant.components.sensor")
     ha_sensor.SensorDeviceClass = types.SimpleNamespace(
@@ -35,10 +40,63 @@ def _stub_homeassistant() -> None:
     )
 
     ha_components = types.ModuleType("homeassistant.components")
+    ha_components.__path__ = []
+    ha_webhook = types.ModuleType("homeassistant.components.webhook")
+    ha_webhook.async_register = lambda *args, **kwargs: None
+    ha_webhook.async_unregister = lambda *args, **kwargs: None
+
+    ha_helpers = types.ModuleType("homeassistant.helpers")
+    ha_helpers.__path__ = []
+    ha_helpers_network = types.ModuleType("homeassistant.helpers.network")
+
+    def _get_url(*args, **kwargs):
+        return "http://192.168.1.10:8123"
+
+    ha_helpers_network.get_url = _get_url
+
+    ha_helpers_update = types.ModuleType("homeassistant.helpers.update_coordinator")
+
+    class DataUpdateCoordinator:
+        def __class_getitem__(cls, _item):
+            return cls
+
+        def __init__(self, hass, logger, *, name, update_interval=None):
+            self.hass = hass
+            self.logger = logger
+            self.name = name
+            self.update_interval = update_interval
+            self.data = {}
+
+        def async_set_updated_data(self, data):
+            self.data = data
+
+    class UpdateFailed(Exception):
+        pass
+
+    ha_helpers_update.DataUpdateCoordinator = DataUpdateCoordinator
+    ha_helpers_update.UpdateFailed = UpdateFailed
+
+    ha_util = types.ModuleType("homeassistant.util")
+    ha_util.__path__ = []
+    ha_util_dt = types.ModuleType("homeassistant.util.dt")
+
+    class _FakeDateTime:
+        def strftime(self, fmt):
+            return "2026-03-26 12:00:00"
+
+    ha_util_dt.now = lambda: _FakeDateTime()
+
     sys.modules["homeassistant"] = ha
     sys.modules["homeassistant.const"] = ha_const
+    sys.modules["homeassistant.core"] = ha_core
     sys.modules["homeassistant.components"] = ha_components
     sys.modules["homeassistant.components.sensor"] = ha_sensor
+    sys.modules["homeassistant.components.webhook"] = ha_webhook
+    sys.modules["homeassistant.helpers"] = ha_helpers
+    sys.modules["homeassistant.helpers.network"] = ha_helpers_network
+    sys.modules["homeassistant.helpers.update_coordinator"] = ha_helpers_update
+    sys.modules["homeassistant.util"] = ha_util
+    sys.modules["homeassistant.util.dt"] = ha_util_dt
 
 
 def _stub_aiohttp() -> None:
@@ -57,14 +115,28 @@ def _stub_aiohttp() -> None:
     aiohttp.ClientError = ClientError
     aiohttp.ClientTimeout = ClientTimeout
     aiohttp.ClientSession = ClientSession
+
+    aiohttp_web = types.ModuleType("aiohttp.web")
+
+    class Request:
+        pass
+
+    class Response:
+        def __init__(self, text="", status=200):
+            self.text = text
+            self.status = status
+
+    aiohttp_web.Request = Request
+    aiohttp_web.Response = Response
     sys.modules["aiohttp"] = aiohttp
+    sys.modules["aiohttp.web"] = aiohttp_web
 
 
-def _load_module(fullname_name: str, filename: str):
+def _load_module(module_name: str, filename: str):
     path = PKG_DIR / filename
-    spec = importlib.util.spec_from_file_location(fullname_name, path)
+    spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules[fullname_name] = module
+    sys.modules[module_name] = module
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
@@ -81,12 +153,17 @@ sys.modules["eedomus"] = eedomus_pkg
 _load_module("eedomus.const", "const.py")
 mapping = _load_module("eedomus.mapping", "mapping.py")
 api = _load_module("eedomus.api", "api.py")
+coordinator_mod = _load_module("eedomus.coordinator", "coordinator.py")
+webhook = _load_module("eedomus.webhook", "webhook.py")
 
 resolve_mapping = mapping.resolve_mapping
 peripheral_label = mapping.peripheral_label
 coerce_number = mapping.coerce_number
 is_on_value = mapping.is_on_value
 EedomusClient = api.EedomusClient
+EedomusCoordinator = coordinator_mod.EedomusCoordinator
+interpret_push_payload = webhook.interpret_push_payload
+webhook_url_for_entry = webhook.webhook_url_for_entry
 
 
 class MappingTests(unittest.TestCase):
@@ -152,6 +229,68 @@ class ApiHostTests(unittest.TestCase):
     def test_local_with_scheme(self):
         base = EedomusClient._normalize_base("http://192.168.1.50")
         self.assertEqual(base, "http://192.168.1.50/api")
+
+
+class WebhookPayloadTests(unittest.TestCase):
+    def test_state_from_query_style(self):
+        intent = interpret_push_payload({"periph_id": "42", "value": "100"})
+        self.assertEqual(intent["kind"], "state")
+        self.assertEqual(intent["periph_id"], "42")
+        self.assertEqual(intent["value"], "100")
+
+    def test_state_accepts_periphId_alias(self):
+        intent = interpret_push_payload({"periphId": "7", "last_value": 0})
+        self.assertEqual(intent["kind"], "state")
+        self.assertEqual(intent["periph_id"], "7")
+        self.assertEqual(intent["value"], 0)
+
+    def test_refresh_action(self):
+        intent = interpret_push_payload({"action": "refresh"})
+        self.assertEqual(intent["kind"], "refresh")
+        self.assertIsNone(intent["periph_id"])
+
+    def test_refresh_single_periph(self):
+        intent = interpret_push_payload({"action": "partial_refresh", "periph_id": "9"})
+        self.assertEqual(intent["kind"], "refresh")
+        self.assertEqual(intent["periph_id"], "9")
+
+    def test_empty_payload_is_ping(self):
+        intent = interpret_push_payload({})
+        self.assertEqual(intent["kind"], "empty")
+
+    def test_webhook_url(self):
+        url = webhook_url_for_entry(MagicMock(), "abc123")
+        self.assertEqual(url, "http://192.168.1.10:8123/api/webhook/abc123")
+
+
+class CoordinatorPushTests(unittest.TestCase):
+    def test_apply_state_update_selected(self):
+        hass = MagicMock()
+        client = MagicMock()
+        coord = EedomusCoordinator(hass, client, ["42"], scan_interval=0)
+        coord.data = {
+            "42": {"periph_id": "42", "name": "PIR", "last_value": "0"},
+        }
+        coord.peripherals = dict(coord.data)
+
+        ok = coord.apply_state_update("42", "100", last_value_text="Mouvement")
+        self.assertTrue(ok)
+        self.assertEqual(coord.data["42"]["last_value"], "100")
+        self.assertEqual(coord.data["42"]["last_value_text"], "Mouvement")
+
+    def test_apply_state_update_ignores_unselected(self):
+        hass = MagicMock()
+        client = MagicMock()
+        coord = EedomusCoordinator(hass, client, ["42"], scan_interval=0)
+        coord.data = {}
+        ok = coord.apply_state_update("99", "1")
+        self.assertFalse(ok)
+
+    def test_webhook_only_disables_interval(self):
+        hass = MagicMock()
+        client = MagicMock()
+        coord = EedomusCoordinator(hass, client, ["1"], scan_interval=0)
+        self.assertIsNone(coord.update_interval)
 
 
 if __name__ == "__main__":

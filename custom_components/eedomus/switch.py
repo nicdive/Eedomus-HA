@@ -31,12 +31,10 @@ class EedomusSwitch(EedomusEntity, SwitchEntity):
     """On/off actuator."""
 
     async def async_turn_on(self, **kwargs) -> None:
-        await self.coordinator.client.async_set_value(self.periph_id, 100)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, 100)
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.coordinator.client.async_set_value(self.periph_id, 0)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_set_value(self.periph_id, 0)
 
     @property
     def is_on(self) -> bool:

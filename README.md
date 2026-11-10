@@ -1,6 +1,6 @@
 # eedomus pour Home Assistant
 
-Intégration custom qui remonte **uniquement les capteurs et actionneurs que vous sélectionnez** depuis votre box eedomus — sur le même principe que brancher une 2ᵉ instance Home Assistant.
+Intégration custom qui remonte **uniquement les capteurs et actionneurs que vous sélectionnez** depuis votre box eedomus — idéale pour garder eedomus comme **passerelle Z-Wave / RFX** tout en pilotant la maison depuis Home Assistant.
 
 ## Fonctionnalités
 
@@ -12,7 +12,9 @@ Intégration custom qui remonte **uniquement les capteurs et actionneurs que vou
   - `sensor` (température, humidité, lux, puissance, énergie…)
   - `binary_sensor` (mouvement, fumée, inondation, ouverture…)
   - `switch` / `light` / `cover`
-- Polling configurable (15 s → 15 min)
+- **Push webhook** pour une réactivité instantanée (mouvement, contact, RFX…)
+- Polling de secours configurable (`0` = webhook seul, sinon 5 s → 15 min)
+- Commandes actionneurs avec **mise à jour optimiste** (l’UI HA réagit tout de suite)
 
 ## Installation
 
@@ -39,18 +41,72 @@ Intégration custom qui remonte **uniquement les capteurs et actionneurs que vou
 2. **Identifiant / mot de passe API**  
    Dans eedomus : *Configuration → Mon compte → API utilisateur*
 3. Choisissez les périphériques à importer dans la liste
+4. **Polling de secours** : `300` s par défaut, ou `0` pour ne plus poller du tout une fois le webhook en place
 
-Pour modifier la sélection plus tard : ouvrir l’intégration → **Configurer**.
+Pour modifier la sélection / voir l’URL webhook plus tard : ouvrir l’intégration → **Configurer**.
+
+## Réactivité instantanée (webhook)
+
+L’API eedomus ne pousse pas les changements toute seule. Configurez un **Actionneur HTTP** sur la box qui appelle Home Assistant dès qu’un périphérique change.
+
+### 1. Récupérer l’URL
+
+Dans HA : *Réglages → Appareils et services → eedomus → Configurer*.  
+L’URL du webhook y est affichée, du type :
+
+```text
+http://IP_HOME_ASSISTANT:8123/api/webhook/xxxxxxxx
+```
+
+### 2. Créer l’actionneur HTTP eedomus
+
+1. eedomus → **Automatismes → Actionneurs HTTP** (ou périphérique *Actionneur HTTP*)
+2. URL, par exemple :
+   ```text
+   http://IP_HOME_ASSISTANT:8123/api/webhook/VOTRE_ID?periph_id=[PERIPH_ID]&value=[LAST_VALUE]
+   ```
+   Les jetons exacts dépendent de votre firmware / règle ; variantes acceptées :
+   - `periph_id` / `periphId` / `id`
+   - `value` / `last_value` / `val`
+3. Méthode : **GET** (ou POST JSON)
+
+### 3. Déclencher sur changement
+
+Sur chaque périphérique critique (PIR, ouverture, RFX…) créez une règle eedomus du type :
+
+> *Quand la valeur change → appeler l’actionneur HTTP*
+
+Vous pouvez aussi pousser une valeur déjà connue :
+
+```text
+.../api/webhook/VOTRE_ID?periph_id=123456&value=100
+```
+
+Ou forcer un refresh API :
+
+```json
+{"action": "refresh"}
+```
+
+```json
+{"action": "refresh", "periph_id": "123456"}
+```
+
+Le webhook n’accepte que le **réseau local** (`local_only`).
+
+### 4. Commandes depuis HA
+
+Interrupteurs / lumières / volets : HA envoie l’ordre à eedomus (passerelle radio) et met à jour l’état **immédiatement**, puis vérifie via `periph.caract`.
 
 ## Identifiants API
 
-Ne partagez jamais votre `api_secret`. Préférez l’API locale sur le réseau domestique.
+Ne partagez jamais votre `api_secret`. Préférez l’API locale sur le réseau domestique. Ne publiez pas non plus l’ID du webhook.
 
-## Limites (v1)
+## Limites
 
 - Pas encore de climate / fil pilote / scènes dédiés (les usages non mappés tombent en `sensor`)
-- Pas de push webhook (polling uniquement)
 - RGBW avancé non géré (lampe dimmable 0–100 %)
+- Le push nécessite une règle / actionneur HTTP côté eedomus (une fois par périphérique, ou via une macro générique)
 
 Si vous avez besoin d’un usage_id précis non reconnu, ouvrez une issue avec un extrait anonymisé de `periph.list`.
 
