@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Enter the host (local box IP or api.eedomus.com) and your API credentials (eedomus Configuration → User API).\n\nBackup poll interval: {scan_hint}",
+        "description": "Host = local box IP (e.g. 192.168.x.x), not the web login.\nCredentials = api_user / api_secret (My account → API credentials), not the portal password.\n\nBackup poll: {scan_hint}\nLast error: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",

@@ -231,6 +231,13 @@ class ApiHostTests(unittest.TestCase):
         base = EedomusClient._normalize_base("http://192.168.1.50")
         self.assertEqual(base, "http://192.168.1.50/api")
 
+    def test_eedomus_local_mdns(self):
+        base = EedomusClient._normalize_base("eedomus.local")
+        self.assertEqual(base, "http://eedomus.local/api")
+        self.assertTrue(EedomusClient.is_local_host("eedomus.local"))
+        self.assertTrue(EedomusClient.is_local_host("192.168.23.171"))
+        self.assertFalse(EedomusClient.is_local_host("api.eedomus.com"))
+
 
 class WebhookPayloadTests(unittest.TestCase):
     def test_state_from_query_style(self):

@@ -71,49 +71,86 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         """Ask for API connection details."""
         errors: dict[str, str] = {}
+        last_error = ""
+        defaults = {
+            CONF_API_HOST: DEFAULT_API_HOST,
+            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+        }
 
         if user_input is not None:
             host = user_input[CONF_API_HOST].strip()
             api_user = user_input[CONF_API_USER].strip()
             api_secret = user_input[CONF_API_SECRET].strip()
             scan_interval = int(user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+            defaults[CONF_API_HOST] = host
+            defaults[CONF_SCAN_INTERVAL] = scan_interval
 
+            # Local boxes sometimes hit self-signed TLS redirects; disable verify there.
+            session = async_get_clientsession(
+                self.hass, verify_ssl=not EedomusClient.is_local_host(host)
+            )
             client = EedomusClient(
-                session=async_get_clientsession(self.hass),
+                session=session,
                 host=host,
                 api_user=api_user,
                 api_secret=api_secret,
             )
+            peripherals: list[dict[str, Any]] = []
             try:
                 await client.async_test_auth()
-                peripherals = await client.async_get_peripherals()
-            except EedomusAuthError:
+            except EedomusAuthError as err:
+                _LOGGER.warning("eedomus auth.test failed for %s: %s", host, err)
                 errors["base"] = "invalid_auth"
-            except EedomusApiError:
+                last_error = f"auth.test: {err}"
+            except EedomusApiError as err:
+                _LOGGER.warning(
+                    "eedomus unreachable at %s (base=%s): %s",
+                    host,
+                    client.base_url,
+                    err,
+                )
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                _LOGGER.exception("Unexpected error during eedomus setup")
+                last_error = f"auth.test via {client.base_url}: {err}"
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.exception("Unexpected error during eedomus auth.test")
                 errors["base"] = "unknown"
+                last_error = str(err)
             else:
-                await self.async_set_unique_id(f"eedomus_{api_user}")
-                self._abort_if_unique_id_configured()
+                try:
+                    peripherals = await client.async_get_peripherals()
+                except EedomusApiError as err:
+                    _LOGGER.warning(
+                        "eedomus periph.list failed for %s: %s", host, err
+                    )
+                    errors["base"] = "cannot_connect"
+                    last_error = f"auth.test OK, periph.list failed: {err}"
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.exception("Unexpected error during eedomus periph.list")
+                    errors["base"] = "unknown"
+                    last_error = f"auth.test OK, periph.list failed: {err}"
+                else:
+                    await self.async_set_unique_id(f"eedomus_{api_user}")
+                    self._abort_if_unique_id_configured()
 
-                self._host = host
-                self._api_user = api_user
-                self._api_secret = api_secret
-                self._scan_interval = scan_interval
-                self._peripherals = peripherals
-                return await self.async_step_devices()
+                    self._host = host
+                    self._api_user = api_user
+                    self._api_secret = api_secret
+                    self._scan_interval = scan_interval
+                    self._peripherals = peripherals
+                    return await self.async_step_devices()
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_API_HOST, default=DEFAULT_API_HOST): str,
+                    vol.Required(
+                        CONF_API_HOST, default=defaults[CONF_API_HOST]
+                    ): str,
                     vol.Required(CONF_API_USER): str,
                     vol.Required(CONF_API_SECRET): str,
                     vol.Required(
-                        CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                        CONF_SCAN_INTERVAL,
+                        default=defaults[CONF_SCAN_INTERVAL],
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=MIN_SCAN_INTERVAL,
@@ -128,6 +165,7 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "scan_hint": "0 = push webhook uniquement (recommandé pour Z-Wave/RFX)",
+                "last_error": last_error or "—",
             },
         )
 
@@ -214,9 +252,12 @@ class EedomusOptionsFlowHandler(config_entries.OptionsFlow):
             else "(webhook non encore initialisé — rechargez l'intégration)"
         )
 
+        host = data[CONF_API_HOST]
         client = EedomusClient(
-            session=async_get_clientsession(self.hass),
-            host=data[CONF_API_HOST],
+            session=async_get_clientsession(
+                self.hass, verify_ssl=not EedomusClient.is_local_host(host)
+            ),
+            host=host,
             api_user=data[CONF_API_USER],
             api_secret=data[CONF_API_SECRET],
         )
