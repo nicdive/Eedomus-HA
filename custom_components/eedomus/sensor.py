@@ -55,4 +55,6 @@ class EedomusSensor(EedomusEntity, SensorEntity):
         value = extract_last_value(data)
         if value is None and data.get("last_value_text") not in (None, ""):
             return data.get("last_value_text")
-        return coerce_number(value)
+        number = coerce_number(value)
+        # Keep 0 as a real state (fin de cycle / idle) — never collapse to None.
+        return number

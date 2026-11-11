@@ -186,7 +186,7 @@ class EedomusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
             description_placeholders={
-                "scan_hint": "0 = push webhook uniquement (recommandé pour Z-Wave/RFX)",
+                "scan_hint": "60 s par défaut (automations puissance). 0 = webhook seul (PIR/RFX + règle eedomus)",
                 "last_error": last_error or "—",
             },
         )

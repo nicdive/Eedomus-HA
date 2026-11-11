@@ -3,12 +3,12 @@
     "step": {
       "user": {
         "title": "Connexion eedomus",
-        "description": "Version 1.1.10 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
+        "description": "Version 1.1.11 — Hôte = IP box ou api.eedomus.com. Identifiants = api_user/api_secret.\nPolling : {scan_hint}\nDétail : {last_error}",
         "data": {
           "api_host": "Hôte API",
           "api_user": "Identifiant API",
           "api_secret": "Mot de passe API",
-          "scan_interval": "Polling de secours (0 = webhook seul)"
+          "scan_interval": "Polling de secours (60 s recommandé sans webhook ; 0 = webhook seul)"
         }
       },
       "organize": {
@@ -45,7 +45,7 @@
           "api_host": "Hôte API (IP locale ou api.eedomus.com)",
           "sort_by": "Classer la liste",
           "selected_devices": "Périphériques",
-          "scan_interval": "Polling de secours (0 = webhook seul)"
+          "scan_interval": "Polling de secours (60 s recommandé sans webhook ; 0 = webhook seul)"
         }
       }
     },

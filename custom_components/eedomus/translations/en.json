@@ -3,12 +3,12 @@
     "step": {
       "user": {
         "title": "Connect to eedomus",
-        "description": "Version 1.1.10 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
+        "description": "Version 1.1.11 — Host = box IP or api.eedomus.com. Credentials = api_user/api_secret.\nPoll: {scan_hint}\nDetail: {last_error}",
         "data": {
           "api_host": "API host",
           "api_user": "API user",
           "api_secret": "API secret",
-          "scan_interval": "Backup poll (0 = webhook only)"
+          "scan_interval": "Backup poll (60 s recommended without webhook; 0 = webhook only)"
         }
       },
       "organize": {
@@ -45,7 +45,7 @@
           "api_host": "API host (local IP or api.eedomus.com)",
           "sort_by": "Sort list",
           "selected_devices": "Peripherals",
-          "scan_interval": "Backup poll (0 = webhook only)"
+          "scan_interval": "Backup poll (60 s recommended without webhook; 0 = webhook only)"
         }
       }
     },

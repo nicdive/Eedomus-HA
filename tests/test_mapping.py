@@ -351,7 +351,7 @@ class CoordinatorPushTests(unittest.TestCase):
 
         ok = coord.apply_state_update("42", "100", last_value_text="Mouvement")
         self.assertTrue(ok)
-        self.assertEqual(coord.data["42"]["last_value"], "100")
+        self.assertEqual(coord.data["42"]["last_value"], 100)
         self.assertEqual(coord.data["42"]["last_value_text"], "Mouvement")
 
     def test_apply_state_update_ignores_unselected(self):
@@ -398,7 +398,63 @@ class CoordinatorPushTests(unittest.TestCase):
         client.async_get_caracts = _caracts
         coord = EedomusCoordinator(hass, client, ["55"], scan_interval=60)
         data = asyncio.run(coord._async_update_data())
-        self.assertEqual(data["55"]["last_value"], "379.3")
+        self.assertEqual(data["55"]["last_value"], 379.3)
+
+    def test_stale_list_value_overwritten_by_caract(self):
+        """Live caract must win over a stale last_value from periph.list."""
+        import asyncio
+
+        hass = MagicMock()
+        client = MagicMock()
+
+        async def _list():
+            return [
+                {
+                    "periph_id": "55",
+                    "name": "Consommation sèche linge",
+                    "usage_id": "26",
+                    "last_value": "417.5",  # stale — dryer still "on"
+                }
+            ]
+
+        async def _caracts(ids):
+            return {"55": {"periph_id": "55", "last_value": "4.2"}}
+
+        client.async_get_peripherals = _list
+        client.async_get_caracts = _caracts
+        coord = EedomusCoordinator(hass, client, ["55"], scan_interval=60)
+        data = asyncio.run(coord._async_update_data())
+        self.assertEqual(data["55"]["last_value"], 4.2)
+
+    def test_keeps_previous_value_when_caract_missing(self):
+        import asyncio
+
+        hass = MagicMock()
+        client = MagicMock()
+
+        async def _list():
+            return [{"periph_id": "55", "name": "Consommation sèche linge"}]
+
+        async def _caracts(ids):
+            return {}  # API glitch — no payload
+
+        client.async_get_peripherals = _list
+        client.async_get_caracts = _caracts
+        coord = EedomusCoordinator(hass, client, ["55"], scan_interval=60)
+        coord.data = {"55": {"periph_id": "55", "last_value": 12.5}}
+        data = asyncio.run(coord._async_update_data())
+        self.assertEqual(data["55"]["last_value"], 12.5)
+
+    def test_apply_state_update_zero_power(self):
+        """Idle / fin de cycle at 0 W must still update HA state."""
+        hass = MagicMock()
+        client = MagicMock()
+        coord = EedomusCoordinator(hass, client, ["55"], scan_interval=60)
+        coord.data = {"55": {"periph_id": "55", "last_value": 400}}
+        coord.peripherals = dict(coord.data)
+        ok = coord.apply_state_update("55", "0")
+        self.assertTrue(ok)
+        self.assertEqual(coord.data["55"]["last_value"], 0)
 
 
 if __name__ == "__main__":
