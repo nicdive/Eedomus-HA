@@ -22,8 +22,9 @@ CONF_SCAN_INTERVAL = "scan_interval"
 CONF_WEBHOOK_ID = "webhook_id"
 
 DEFAULT_API_HOST = "api.eedomus.com"
-# Slow backup poll — real-time updates come from the eedomus HTTP webhook.
-DEFAULT_SCAN_INTERVAL = 300
+# Backup poll when no eedomus→HA webhook rule. 60s is a good default for
+# power automations (ex. fin de cycle); use webhook + 0 for instant push.
+DEFAULT_SCAN_INTERVAL = 60
 MIN_SCAN_INTERVAL = 0  # 0 = webhook-only (no polling)
 MAX_SCAN_INTERVAL = 900
 

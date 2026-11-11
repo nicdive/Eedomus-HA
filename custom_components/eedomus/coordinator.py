@@ -13,12 +13,32 @@ from homeassistant.util import dt as dt_util
 
 from .api import EedomusApiError, EedomusClient
 from .const import DOMAIN
+from .mapping import coerce_number
 from .values import extract_last_value, has_usable_value, merge_value_fields
 
 _LOGGER = logging.getLogger(__name__)
 
 # Avoid hammering the box when many peripherals are selected.
 _CARACT_BATCH = 8
+
+# Metadata kept across polls when periph.list omits them.
+_KEEP_KEYS = (
+    "name",
+    "usage_id",
+    "usage_name",
+    "room_id",
+    "room_name",
+    "value_type",
+    "parent_periph_id",
+    "channel_id",
+    "battery",
+    "last_value",
+    "last_value_text",
+    "last_value_change",
+    "value",
+    "current_value",
+    "val",
+)
 
 
 class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
@@ -66,7 +86,9 @@ class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             or self.peripherals.get(pid)
             or {"periph_id": pid}
         )
-        current["last_value"] = value
+        # Normalize numerics so HA sees a stable state change (e.g. "5,0" → 5).
+        normalized = coerce_number(value)
+        current["last_value"] = normalized if normalized is not None else value
         current["last_value_change"] = dt_util.now().strftime("%Y-%m-%d %H:%M:%S")
         for key, extra_value in extras.items():
             if extra_value is not None:
@@ -111,6 +133,9 @@ class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
         )
         current = merge_value_fields(current, caract)
         current["periph_id"] = pid
+        value = extract_last_value(current)
+        if value is not None:
+            current["last_value"] = coerce_number(value)
         merged = dict(self.data or self.peripherals)
         merged[pid] = current
         self.peripherals = merged
@@ -144,16 +169,30 @@ class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             for pid in batch:
                 result = caracts.get(pid)
                 if result is None:
-                    _LOGGER.warning("No caract payload for periph %s", pid)
+                    _LOGGER.warning(
+                        "No caract payload for periph %s — keeping previous value",
+                        pid,
+                    )
                     continue
                 by_id[pid] = merge_value_fields(by_id.get(pid, {"periph_id": pid}), result)
                 value = extract_last_value(by_id[pid])
+                if value is not None:
+                    by_id[pid]["last_value"] = coerce_number(value)
                 _LOGGER.debug(
                     "eedomus caract %s last_value=%r usage=%s",
                     pid,
-                    value,
+                    by_id[pid].get("last_value"),
                     by_id[pid].get("usage_name") or by_id[pid].get("usage_id"),
                 )
+
+    def _seed_from_previous(self, periph_id: str, list_row: dict[str, Any]) -> dict[str, Any]:
+        """Start from previous live fields so a failed caract does not wipe state."""
+        previous = (self.data or self.peripherals or {}).get(periph_id) or {}
+        seeded: dict[str, Any] = {"periph_id": periph_id}
+        for key in _KEEP_KEYS:
+            if key in previous and previous[key] not in (None, ""):
+                seeded[key] = previous[key]
+        return merge_value_fields(seeded, list_row)
 
     async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         try:
@@ -166,21 +205,22 @@ class EedomusCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
             periph_id = str(periph.get("periph_id") or "")
             if not periph_id or periph_id not in self.selected_ids:
                 continue
-            by_id[periph_id] = merge_value_fields({"periph_id": periph_id}, dict(periph))
+            by_id[periph_id] = self._seed_from_previous(periph_id, dict(periph))
 
-        # periph.list often omits live values — always pull caract for empties.
-        missing = [pid for pid, data in by_id.items() if not has_usable_value(data)]
-        # Also refresh any selected id absent from list (renamed/hidden edge cases).
+        # Selected ids absent from list (renamed/hidden) — keep previous seed.
         for pid in self.selected_ids:
             if pid not in by_id:
-                by_id[pid] = {"periph_id": pid}
-                missing.append(pid)
+                by_id[pid] = self._seed_from_previous(pid, {"periph_id": pid})
 
-        if missing:
-            _LOGGER.info(
-                "eedomus enriching %s peripheral(s) via periph.caract", len(missing)
+        # Always refresh live values via periph.caract.
+        # periph.list often omits them or can carry a stale last_value — skipping
+        # caract breaks numeric automations (ex. fin de cycle sèche-linge).
+        to_refresh = list(by_id.keys())
+        if to_refresh:
+            _LOGGER.debug(
+                "eedomus refreshing %s peripheral(s) via periph.caract", len(to_refresh)
             )
-            await self._async_enrich_caract(by_id, missing)
+            await self._async_enrich_caract(by_id, to_refresh)
 
         still_empty = [
             pid for pid, data in by_id.items() if not has_usable_value(data)

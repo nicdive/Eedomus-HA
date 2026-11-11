@@ -41,9 +41,17 @@ Intégration custom qui remonte **uniquement les capteurs et actionneurs que vou
 2. **Identifiant / mot de passe API**  
    Dans eedomus : *Configuration → Mon compte → API utilisateur*
 3. Choisissez les périphériques à importer dans la liste
-4. **Polling de secours** : `300` s par défaut, ou `0` pour ne plus poller du tout une fois le webhook en place. Pour les **consomètres / puissance (W)** sans règle push eedomus, gardez un polling (ex. 30–60 s) : `periph.list` ne contient pas la valeur live, l’intégration la lit via `periph.caract`.
+4. **Polling de secours** : `60` s par défaut (adapté aux règles de puissance / fin de cycle). Mettez `0` seulement si chaque capteur critique a une règle push eedomus → webhook HA. L’intégration lit la valeur live via `periph.caract` à chaque poll.
 
 Pour modifier la sélection / voir l’URL webhook plus tard : ouvrir l’intégration → **Configurer**.
+
+### Exemple : fin de cycle sèche-linge
+
+1. Polling **30–60 s** (ou webhook sur le consomètre)
+2. Automation HA — déclencheur *État numérique* :
+   - Entité = consommation sèche-linge
+   - Sous **20 W** pendant **5 minutes**
+3. Sans webhook et avec un poll trop long (ex. 300 s / 0), la baisse de puissance arrive trop tard ou pas du tout → la règle ne part pas.
 
 ## Réactivité instantanée (webhook)
 
@@ -72,7 +80,7 @@ http://IP_HOME_ASSISTANT:8123/api/webhook/xxxxxxxx
 
 ### 3. Déclencher sur changement
 
-Sur chaque périphérique critique (PIR, ouverture, RFX…) créez une règle eedomus du type :
+Sur chaque périphérique critique (PIR, ouverture, RFX, **consomètre**…) créez une règle eedomus du type :
 
 > *Quand la valeur change → appeler l’actionneur HTTP*
 
