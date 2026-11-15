@@ -17,6 +17,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import EedomusCoordinator
+from .mapping import PLATFORM_LABELS, resolve_mapping
 
 
 class EedomusEntity(CoordinatorEntity[EedomusCoordinator]):
@@ -27,16 +28,23 @@ class EedomusEntity(CoordinatorEntity[EedomusCoordinator]):
     def __init__(self, coordinator: EedomusCoordinator, periph_id: str) -> None:
         super().__init__(coordinator)
         self.periph_id = str(periph_id)
+        # Stable per peripheral — never share across switch vs binary_sensor.
         self._attr_unique_id = f"eedomus_{self.periph_id}"
         data = self.periph_data
-        name = data.get("name") or f"eedomus {self.periph_id}"
-        self._attr_name = str(name)
+        mapping = resolve_mapping(data)
+        platform = str(mapping.get("platform") or "sensor")
+        kind = PLATFORM_LABELS.get(platform, platform)
+        raw_name = str(data.get("name") or f"eedomus {self.periph_id}").strip()
+        usage = str(data.get("usage_name") or "").strip()
+        # Disambiguate same eedomus labels (ex. switch + contact "Ouverture portail").
+        self._attr_name = f"{raw_name} ({kind})"
         room = str(data.get("room_name") or "").strip()
+        model = usage or kind
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.periph_id)},
-            name=str(name),
+            name=f"{raw_name} ({kind})",
             manufacturer="eedomus",
-            model=str(data.get("usage_name") or "Peripheral"),
+            model=f"{model} · #{self.periph_id}",
             suggested_area=room or None,
             via_device=(DOMAIN, "bridge"),
         )
