@@ -15,21 +15,34 @@ PLATFORM_LABELS = {
 }
 
 
-def resolve_mapping(periph: dict[str, Any]) -> dict[str, Any]:
-    """Resolve HA platform metadata for a peripheral."""
-    haystack = " ".join(
+def _name_haystack(periph: dict[str, Any]) -> str:
+    return " ".join(
         str(periph.get(key) or "").lower()
         for key in ("usage_name", "name")
     )
 
-    # Name/usage text wins over a wrong usage_id (ex. Consomètre vs kWh).
+
+def _hint_mapping(haystack: str) -> dict[str, Any] | None:
     for keywords, mapping in NAME_HINTS:
         if any(keyword in haystack for keyword in keywords):
             return dict(mapping)
+    return None
 
+
+def resolve_mapping(periph: dict[str, Any]) -> dict[str, Any]:
+    """Resolve HA platform metadata for a peripheral.
+
+    usage_id wins for known actuators/sensors so a switch named
+    "Ouverture portail" stays a switch (and does not become the contact
+    binary_sensor that shares the same label).
+    """
     usage_id = str(periph.get("usage_id") or "").strip()
     if usage_id in USAGE_MAPPING:
         return dict(USAGE_MAPPING[usage_id])
+
+    hinted = _hint_mapping(_name_haystack(periph))
+    if hinted is not None:
+        return hinted
 
     # Default: read-only sensor so the user still sees the value.
     return {"platform": "sensor"}

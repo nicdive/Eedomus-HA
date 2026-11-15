@@ -261,16 +261,38 @@ class MappingTests(unittest.TestCase):
         self.assertEqual(result["unit"], "W")
         self.assertEqual(result["state_class"], "measurement")
 
-    def test_name_overrides_wrong_energy_usage(self):
+    def test_usage_id_wins_over_opening_name_for_switch(self):
+        """Portal actuator named like the contact must stay a switch."""
+        result = resolve_mapping(
+            {
+                "usage_id": "2",
+                "usage_name": "Appareil électrique",
+                "name": "Ouverture portail",
+            }
+        )
+        self.assertEqual(result["platform"], "switch")
+
+    def test_opening_contact_still_binary_when_usage_unknown(self):
+        result = resolve_mapping(
+            {
+                "usage_id": "9999",
+                "usage_name": "Contact",
+                "name": "Ouverture portail",
+            }
+        )
+        self.assertEqual(result["platform"], "binary_sensor")
+        self.assertEqual(result["device_class"], "opening")
+
+    def test_known_energy_usage_id_not_overridden_by_conso_name(self):
         result = resolve_mapping(
             {
                 "usage_id": "29",
-                "usage_name": "Consomètre",
-                "name": "Consommation sèche linge",
+                "usage_name": "Index",
+                "name": "Consommation journalière",
             }
         )
-        self.assertEqual(result["device_class"], "power")
-        self.assertEqual(result["unit"], "W")
+        self.assertEqual(result["device_class"], "energy")
+        self.assertEqual(result["unit"], "kWh")
 
     def test_extract_value_aliases(self):
         self.assertEqual(extract_last_value({"value": "379.3"}), "379.3")
